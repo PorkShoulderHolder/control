@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 project( markertest )
 find_package( OpenCV REQUIRED )
-add_executable( markertest test2.cpp )
+add_executable( drawmarkers drawmarkers.cpp )
 target_link_libraries( markertest ${OpenCV_LIBS} )
