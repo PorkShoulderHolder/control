@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp> 
-#include <string> 
+#include <string>
+#include "network_manager.h"
+#include "bot.h"
 
 using namespace cv;
 using namespace std;
@@ -30,18 +32,15 @@ void generate_markers(int count){
       cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1); 
     }
     cv::imshow("d", display_image);
-    waitKey(0);
+    //waitKey(0);
   
 }
 
 void calibrate(int device_index){
-    cv::VideoCapture input_stream(0);
+    cv::VideoCapture input_stream(device_index);
     cv::Mat current_image;
     while(1){
         input_stream.read(current_image);
-
-
-
         cv::Mat inputImage = current_image;  
         vector< int > markerIds; 
         vector< vector<Point2f> > markerCorners, rejectedCandidates; 
@@ -50,12 +49,17 @@ void calibrate(int device_index){
         cv::aruco::detectMarkers(inputImage, dictionary, markerCorners, markerIds, parameters, rejectedCandidates); 
         cv::aruco::drawDetectedMarkers(current_image, markerCorners, markerIds); 
         cv::imshow("output", current_image);
-        if(cv::waitKey(30) >= 0) break;
+        if(waitKey(30) >= 0) break;
     }
 }
 
+void test_network(){
+    NetworkManager *manager = new NetworkManager();
+    manager->send_to((char *)"goodvibes1067796.local", (char *)"r:::1", 8888);
+}
+
 int main(int argc, char** argv )
-{    
+{
 
     if (argc > 1 && strcmp(argv[1], "generate-markers") == 0){
         int count = 50;
@@ -63,6 +67,22 @@ int main(int argc, char** argv )
             count = atoi(argv[2]);
         }
         generate_markers(count);
+    }
+    else if (argc > 1 && strcmp(argv[1], "run-tests") == 0){
+        if( argc > 3) {
+            Bot *b = new Bot(argv[2]);
+            const MOTOR on_commands[2] = {M_RIGHT_ON, M_LEFT_ON};
+            const MOTOR off_commands[2] = {M_RIGHT_OFF, M_LEFT_OFF};
+            if(strcmp(argv[3], "1") == 0){
+                b->apply_motor_commands(on_commands);
+            }
+            else if(strcmp(argv[3], "0") == 0){
+                b->apply_motor_commands(off_commands);
+            }
+        }
+        else{
+            test_network();
+        }
     }
     else if(argc > 1 && strcmp(argv[1], "calibrate") == 0){
         int device_index = 1;
