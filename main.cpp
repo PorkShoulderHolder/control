@@ -38,18 +38,34 @@ void generate_markers(int count){
 
 void calibrate(int device_index){
     cv::VideoCapture input_stream(device_index);
+
     cv::Mat current_image;
+    int i = 1;
+    time_t start, finish;
+    time(&start);
+    std::string fps_str = "0 fps";
+    int sample_pd = 80;
+    cv::Point text_loc(20, 20);
     while(1){
-        input_stream.read(current_image);
+        if(i % sample_pd == 0){
+            time(&finish);
+            double seconds = difftime (finish, start);
+            float fps = sample_pd / seconds;
+            fps_str = std::string(to_string(fps)) + " fps";
+            time(&start);
+        }
+        input_stream >> current_image;
         cv::Mat inputImage = current_image;  
-        vector< int > markerIds; 
-        vector< vector<Point2f> > markerCorners, rejectedCandidates; 
-        cv::aruco::DetectorParameters parameters; 
-        cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250); 
-        cv::aruco::detectMarkers(inputImage, dictionary, markerCorners, markerIds, parameters, rejectedCandidates); 
-        cv::aruco::drawDetectedMarkers(current_image, markerCorners, markerIds); 
+        vector< int > markerIds;
+        vector< vector<Point2f> > markerCorners, rejectedCandidates;
+        cv::aruco::DetectorParameters parameters;
+        cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
+        cv::aruco::detectMarkers(inputImage, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+        cv::aruco::drawDetectedMarkers(current_image, markerCorners, markerIds);
+        cv::putText(current_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow("output", current_image);
         if(waitKey(30) >= 0) break;
+        i++;
     }
 }
 

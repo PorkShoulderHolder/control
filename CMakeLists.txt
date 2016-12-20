@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 project( control )
 find_package( OpenCV REQUIRED )
-add_executable( control main.cpp bot.cpp bot.h network_manager.cpp network_manager.h)
+add_executable( control main.cpp bot.cpp bot.h network_manager.cpp network_manager.h state.cpp state.h utils.cpp utils.h)
 target_link_libraries( control ${OpenCV_LIBS} )

@@ -1,3 +1,6 @@
+control
+.idea
+*.xcodeproj
 MakeFile
 CMakeFiles
 CMakeCache.txt
