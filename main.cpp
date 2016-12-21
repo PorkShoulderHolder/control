@@ -4,6 +4,7 @@
 #include <string>
 #include "network_manager.h"
 #include "bot.h"
+#include "state.h"
 
 using namespace cv;
 using namespace std;
@@ -36,6 +37,7 @@ void generate_markers(int count){
   
 }
 
+
 void calibrate(int device_index){
     cv::VideoCapture input_stream(device_index);
 
@@ -50,20 +52,14 @@ void calibrate(int device_index){
         if(i % sample_pd == 0){
             time(&finish);
             double seconds = difftime (finish, start);
-            float fps = sample_pd / seconds;
+            double fps = sample_pd / seconds;
             fps_str = std::string(to_string(fps)) + " fps";
             time(&start);
         }
         input_stream >> current_image;
-        cv::Mat inputImage = current_image;  
-        vector< int > markerIds;
-        vector< vector<Point2f> > markerCorners, rejectedCandidates;
-        cv::aruco::DetectorParameters parameters;
-        cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
-        cv::aruco::detectMarkers(inputImage, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
-        cv::aruco::drawDetectedMarkers(current_image, markerCorners, markerIds);
-        cv::putText(current_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
-        cv::imshow("output", current_image);
+        State::update(current_image);
+        cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
+        cv::imshow("output", State::display_image);
         if(waitKey(30) >= 0) break;
         i++;
     }
