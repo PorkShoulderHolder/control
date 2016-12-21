@@ -5,6 +5,7 @@
 
 #include <opencv2/videoio.hpp>
 #include <opencv2/aruco.hpp>
+#include <iostream>
 #include "state.h"
 
 
@@ -66,10 +67,11 @@ void State::update(cv::Mat image) {
     t_frame current;
     current.ms = ms;
     current.locations = State::update_markers(image);
+
     State::image_queue.push_front(current);
 }
 
-int State::hist_length = 40;
+int State::hist_length = 20;
 std::vector<Bot> State::devices;
 std::deque<t_frame>State::image_queue;
 cv::Mat State::current_image;
