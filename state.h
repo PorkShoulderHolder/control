@@ -11,6 +11,7 @@
 #include <vector>
 #include <set>
 #include <stdlib.h>
+#include "utils.h"
 
 #ifndef CONTROL_STATE_H
 #define CONTROL_STATE_H

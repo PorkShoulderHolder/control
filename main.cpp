@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp> 
 #include <string>
+#include "camera_calibration.h"
 #include "network_manager.h"
 #include "bot.h"
 #include "state.h"
@@ -49,6 +50,7 @@ void loop_outer_log(){
     }
     std::cout << "=========" << std::endl;
 }
+
 
 void calibrate(int device_index){
     cv::VideoCapture input_stream(device_index);
@@ -118,6 +120,9 @@ int main(int argc, char** argv )
             device_index = atoi(argv[2]);
         }
         calibrate(device_index);
+    }
+    else{
+        calibrate_camera_main(argc, argv);
     }
     return 0;
 }

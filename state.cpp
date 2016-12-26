@@ -52,6 +52,7 @@ std::unordered_map<int, Point2f> State::update_markers(cv::Mat image){
     vector< vector<Point2f> > marker_corners, rejected;
     cv::aruco::DetectorParameters parameters;
     cv::aruco::detectMarkers(image, State::marker_dictionary, marker_corners, ids, parameters, rejected);
+    Utils::compute_ground_plane(marker_corners);
     std::unordered_map<int, Point2f> marker_locations;
 
     State::marker_ids.insert(ids.begin(), ids.end());
