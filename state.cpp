@@ -28,14 +28,33 @@ std::vector<Bot> State::bots_for_ids(std::vector<char *> hosts, std::vector<int>
 }
 
 
+std::vector< std::unordered_map<int, cv::Point2f> > State::get_differentials() {
+    float mvmt_threshold = 3.0;
+    for(int id : State::marker_ids) {
+        for(int i = 1; i < (i <  State::image_queue.size() ? 2 : State::image_queue.size()); i++){
+            t_frame frame = State::image_queue[i];
+            t_frame prev = State::image_queue[i - 1];
+            auto current_loc = frame.locations.find(id);
+            auto prev_loc = prev.locations.find(id);
+            if(current_loc != frame.locations.end() && prev_loc != prev.locations.end()){
+                double d = cv::norm(current_loc->second - prev_loc->second);
+                if(d > mvmt_threshold){
+                    std::cout << "marker " << id << " moving" << std::endl;
+                    break;
+                }
+            }
+        }
+    }
+};
 
 std::unordered_map<int, Point2f> State::update_markers(cv::Mat image){
     vector< int > ids;
     vector< vector<Point2f> > marker_corners, rejected;
     cv::aruco::DetectorParameters parameters;
     cv::aruco::detectMarkers(image, State::marker_dictionary, marker_corners, ids, parameters, rejected);
-    t_frame current;
     std::unordered_map<int, Point2f> marker_locations;
+
+    State::marker_ids.insert(ids.begin(), ids.end());
     for(int i = 0; i < marker_corners.size(); i++){
         vector<Point2f> box = marker_corners[i];
         int id = ids[i];
@@ -49,6 +68,8 @@ std::unordered_map<int, Point2f> State::update_markers(cv::Mat image){
         marker_locations.insert(kv);
 
     }
+    State::get_differentials();
+
     if(DISPLAY_ON){
         cv::aruco::drawDetectedMarkers(State::display_image, marker_corners, ids);
     }
@@ -79,5 +100,6 @@ std::deque<t_frame>State::image_queue;
 cv::Mat State::current_image;
 cv::Mat State::difference_image;
 cv::Mat State::display_image;
+std::set< int > State::marker_ids;
 cv::aruco::Dictionary State::marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
 

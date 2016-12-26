@@ -73,6 +73,7 @@ void calibrate(int device_index){
         if(DEBUG){
             loop_outer_log();
         }
+
         cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow("output", State::display_image);
         if(waitKey(30) >= 0) break;
