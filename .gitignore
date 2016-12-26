@@ -2,6 +2,7 @@ control
 .idea
 *.xcodeproj
 MakeFile
+camera_data.xml
 CMakeFiles
 CMakeCache.txt
 markertest
