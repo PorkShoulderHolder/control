@@ -11,7 +11,8 @@
 #include <opencv2/aruco.hpp>
 
 class Utils{
-    static void compute_ground_plane(std::vector< int > ids, std::vector< std::vector<cv::Point2f> > corners);
+    static std::vector<cv::Point2f> compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads);
+    static cv::Mat homogenous_quad( std::vector<cv::Point2f> quad);
 };
 
 #endif //CONTROL_UTILS_H

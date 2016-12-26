@@ -5,6 +5,7 @@
 #include "network_manager.h"
 #include "bot.h"
 #include "state.h"
+#define DEBUG false
 
 using namespace cv;
 using namespace std;
@@ -37,6 +38,17 @@ void generate_markers(int count){
   
 }
 
+void loop_outer_log(){
+    for(int j = 0; j < State::image_queue.size(); j++){
+        t_frame t = State::image_queue[j];
+        for ( auto local_it = t.locations.begin(); local_it!= t.locations.end(); ++local_it ) {
+            std::cout << " " << local_it->first << ":" << local_it->second;
+        }
+        std::cout << "-----------" << std::endl;
+
+    }
+    std::cout << "=========" << std::endl;
+}
 
 void calibrate(int device_index){
     cv::VideoCapture input_stream(device_index);
@@ -58,15 +70,9 @@ void calibrate(int device_index){
         }
         input_stream >> current_image;
         State::update(current_image);
-        for(int j = 0; j < State::image_queue.size(); j++){
-            t_frame t = State::image_queue[j];
-            for ( auto local_it = t.locations.begin(); local_it!= t.locations.end(); ++local_it ) {
-                std::cout << " " << local_it->first << ":" << local_it->second;
-            }
-            std::cout << "-----------" << std::endl;
-
+        if(DEBUG){
+            loop_outer_log();
         }
-        std::cout << "=========" << std::endl;
         cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow("output", State::display_image);
         if(waitKey(30) >= 0) break;
