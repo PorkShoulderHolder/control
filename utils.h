@@ -9,12 +9,18 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
+#include "bot.h"
 
 class Utils{
 public:
-    static void compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads);
+    static std::pair<std::vector<cv::Vec3d>, std::vector<cv::Vec3d> >
+            compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads);
     static cv::Mat homogenous_quad( std::vector<cv::Point2f> quad);
+    static bool begin_match_aruco();
+    static std::vector<char *> get_device_names_from_file();
+
 private:
+
     static cv::Mat distortion_coefs;
     static cv::Mat camera_matrix;
 };

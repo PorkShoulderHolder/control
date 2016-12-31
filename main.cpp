@@ -6,10 +6,43 @@
 #include "network_manager.h"
 #include "bot.h"
 #include "state.h"
+#include <iostream>
+#include <stdexcept>
+#include <stdio.h>
+#include <string>
+
 #define DEBUG false
 
 using namespace cv;
 using namespace std;
+
+std::string exec(const char* cmd) {
+    char buffer[128];
+    std::string result = "";
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    try {
+        while (!feof(pipe)) {
+            if (fgets(buffer, 8, pipe) != NULL )
+                result += buffer;
+        }
+    } catch (...) {
+        pclose(pipe);
+        throw;
+    }
+
+    pclose(pipe);
+    return result;
+}
+
+void exiting(){
+    for( Bot *b : State::devices ){
+        std::vector<MOTOR> off;
+        off.push_back(M_RIGHT_OFF);
+        off.push_back(M_LEFT_OFF);
+        b->apply_motor_commands(off);
+    }
+}
 
 void generate_markers(int count){
     cv::Mat markerImage; 
@@ -40,8 +73,8 @@ void generate_markers(int count){
 }
 
 void loop_outer_log(){
-    for(int j = 0; j < State::image_queue.size(); j++){
-        t_frame t = State::image_queue[j];
+    for(int j = 0; j < State::hist.size(); j++){
+        t_frame t = State::hist[j];
         for ( auto local_it = t.locations.begin(); local_it!= t.locations.end(); ++local_it ) {
             std::cout << " " << local_it->first << ":" << local_it->second;
         }
@@ -62,6 +95,10 @@ void calibrate(int device_index){
     std::string fps_str = "0 fps";
     int sample_pd = 80;
     cv::Point text_loc(20, 20);
+    cv::namedWindow( "output", cv::WINDOW_NORMAL );
+
+    init_state();
+
     while(1){
         if(i % sample_pd == 0){
             time(&finish);
@@ -77,6 +114,7 @@ void calibrate(int device_index){
         }
 
         cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
+        cv::resize(State::display_image, State::display_image, Size(1224, 768), 0, 0, INTER_CUBIC);
         cv::imshow("output", State::display_image);
         if(waitKey(30) >= 0) break;
         i++;
@@ -91,6 +129,7 @@ void test_network(){
 int main(int argc, char** argv )
 {
 
+    std::atexit(exiting);
     if (argc > 1 && strcmp(argv[1], "generate-markers") == 0){
         int count = 50;
         if(argc > 2){
@@ -101,8 +140,12 @@ int main(int argc, char** argv )
     else if (argc > 1 && strcmp(argv[1], "run-tests") == 0){
         if( argc > 3) {
             Bot *b = new Bot(argv[2]);
-            const MOTOR on_commands[2] = {M_RIGHT_ON, M_LEFT_ON};
-            const MOTOR off_commands[2] = {M_RIGHT_OFF, M_LEFT_OFF};
+            std::vector<MOTOR> on_commands;
+            std::vector<MOTOR> off_commands;
+            off_commands.push_back(M_LEFT_OFF);
+            off_commands.push_back(M_RIGHT_OFF);
+            on_commands.push_back(M_RIGHT_ON);
+            on_commands.push_back(M_LEFT_ON);
             if(strcmp(argv[3], "1") == 0){
                 b->apply_motor_commands(on_commands);
             }
@@ -115,11 +158,15 @@ int main(int argc, char** argv )
         }
     }
     else if(argc > 1 && strcmp(argv[1], "calibrate") == 0){
+        system("gtimeout 2 ./mdns-mod -B");
         int device_index = 1;
         if(argc > 2){
             device_index = atoi(argv[2]);
         }
         calibrate(device_index);
+    }
+    else if(argc > 1 && strcmp(argv[1], "init") == 0){
+        system("gtimeout 2 ./mdns-mod -B");
     }
     else{
         calibrate_camera_main(argc, argv);

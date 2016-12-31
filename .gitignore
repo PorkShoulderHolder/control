@@ -3,6 +3,8 @@ control
 *.xcodeproj
 MakeFile
 camera_data.xml
+mdns-mod
+domains.txt
 CMakeFiles
 CMakeCache.txt
 markertest
