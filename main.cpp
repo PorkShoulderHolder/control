@@ -74,7 +74,7 @@ void generate_markers(int count){
       cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1); 
     }
     cv::imshow("d", display_image);
-    //waitKey(0);
+    waitKey(0);
   
 }
 
@@ -144,6 +144,7 @@ int main(int argc, char** argv )
         generate_markers(count);
     }
     else if (argc > 1 && strcmp(argv[1], "run-tests") == 0){
+
         if( argc > 3) {
             Bot *b = new Bot(argv[2]);
             std::vector<MOTOR> on_commands;
@@ -170,9 +171,6 @@ int main(int argc, char** argv )
             device_index = atoi(argv[2]);
         }
         calibrate(device_index);
-    }
-    else if(argc > 1 && strcmp(argv[1], "init") == 0){
-        system("gtimeout 2 ./mdns-mod -B");
     }
     else{
         calibrate_camera_main(argc, argv);

@@ -54,13 +54,13 @@ std::vector<char *> Utils::get_device_names_from_file(){
 }
 
 std::deque< std::vector<MOTOR> > command_seq_for_index(int index, int count, INIT_SPEED speed, PATTERN_TYPE pattern){
-    cv::Mat command_mat = cv::Mat::zeros(2, count * speed, CV_32F);
+    cv::Mat command_mat = cv::Mat::zeros(2, (count + 6) * speed, CV_32F);
     std::deque< std::vector<MOTOR> > command_deq;
     switch(pattern){
         case PATTERN_TYPE_ITER:
-            command_mat(cv::Rect(index * speed, 0, speed, 2)) = 1;
+            command_mat(cv::Rect((2 + index) * speed, 0, speed, 1)) = 1;
         default:
-            command_mat(cv::Rect(index * speed, 0, speed, 2)) = 1;
+            command_mat(cv::Rect((2 + index) * speed, 0, speed, 1)) = 1;
     }
     for(int n = 0; n < command_mat.cols; n++)
     {
@@ -98,11 +98,12 @@ bool Utils::begin_match_aruco() {
 
     for( Bot *bot : State::devices ){
         bot->command_queue = command_seq_for_index(i, (int)State::devices.size(), speed, PATTERN_TYPE_ITER);
+        task t;
+        t.id = i;
+        t.f = &(Bot::match_movement);
+        State::schedule_task(t, (i + 1 + 2) * speed);
         i++;
     }
-    task t;
-    t.f;
-    State::schedule_task(t, (int)State::devices.size() * speed + 1);
 }
 
 

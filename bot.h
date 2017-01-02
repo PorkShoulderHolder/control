@@ -15,20 +15,27 @@ enum MOTOR{
     M_LEFT_ON = 3
 };
 
-
-class Bot {
-public:
-    Bot(const char *host);
+struct phys_state{
     cv::Vec3d location;
     cv::Vec3d velocity;
     cv::Vec3d rotation;
-    char *host;
-    std::deque<std::vector<MOTOR> > command_queue;
-    int aruco_id;
-    void set_target_location(cv::Point);
-    void apply_motor_commands(std::vector<MOTOR>);
+};
+
+class Bot {
+public:
+    Bot( const char *host );
+    void save_to_file();
+    void apply_motor_commands( std::vector<MOTOR> );
+    void set_target_location( cv::Point );
     void incr_command_queue();
-    void save_to_file()
+    static void match_movement(int);
+
+    phys_state state;
+    char *host;
+    std::deque< std::vector<MOTOR> > command_queue;
+    bool on_off_inverted;
+    bool lr_inverted;
+    int aruco_id;
 private:
     float left_motor_on;
     int port;

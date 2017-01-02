@@ -24,22 +24,24 @@ std::vector<Bot> State::bots_for_ids(std::vector<char *> hosts, std::vector<int>
 
 
 std::vector< std::unordered_map<int, cv::Point2f> > State::get_differentials() {
-    float mvmt_threshold = 3.0;
-    for(int id : State::marker_ids) {
-        for(int i = 1; i < (i <  State::hist.size() ? 2 : State::hist.size()); i++){
-            t_frame frame = State::hist[i];
-            t_frame prev = State::hist[i - 1];
-            auto current_loc = frame.locations.find(id);
-            auto prev_loc = prev.locations.find(id);
-            if(current_loc != frame.locations.end() && prev_loc != prev.locations.end()){
-                double d = cv::norm(current_loc->second - prev_loc->second);
-                if(d > mvmt_threshold){
-                    std::cout << "marker " << id << " moving" << std::endl;
-                    break;
-                }
-            }
-        }
-    }
+  //  float mvmt_threshold = 3.0;
+//    for(auto id : State::marker_ids) {
+//        int c = State::hist.size();
+//        std::cout << "hi " << id << std::endl;
+//        if(c > 1){
+//            t_frame frame = State::hist[0];
+//            t_frame prev = State::hist[1];
+//            auto current_loc = frame.locations.find(id);
+//            auto prev_loc = prev.locations.find(id);
+//            if(current_loc != frame.locations.end() && prev_loc != prev.locations.end()){
+//                double d = cv::norm(current_loc->second - prev_loc->second);
+//                if(d > mvmt_threshold){
+//                    std::cout << "marker " << id << " moving" << std::endl;
+//                    break;
+//                }
+//            }
+//        }
+//    }
 };
 
 LocationRotationMap State::update_markers(cv::Mat image){
@@ -68,8 +70,8 @@ LocationRotationMap State::update_markers(cv::Mat image){
 
     for( Bot *b : State::devices ){
         if(b->aruco_id != NULL){
-            b->location = marker_locations[b->aruco_id];
-            b->rotation = marker_rotations[b->aruco_id];
+            b->state.location = marker_locations[b->aruco_id];
+            b->state.rotation = marker_rotations[b->aruco_id];
         }
     }
 
@@ -119,6 +121,7 @@ void State::update(cv::Mat image) {
     current.locations = cur_device_states.first;
     current.rotations = cur_device_states.second;
     State::hist.push_front(current);
+
 
     for( Bot *b : State::devices ){
         b->incr_command_queue();
