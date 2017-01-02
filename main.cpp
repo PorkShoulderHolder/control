@@ -10,6 +10,9 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <string>
+#include <cstdlib>
+#include <csignal>
+
 
 #define DEBUG false
 
@@ -35,13 +38,16 @@ std::string exec(const char* cmd) {
     return result;
 }
 
-void exiting(){
+void exiting(int i){
     for( Bot *b : State::devices ){
         std::vector<MOTOR> off;
         off.push_back(M_RIGHT_OFF);
         off.push_back(M_LEFT_OFF);
         b->apply_motor_commands(off);
     }
+    printf("%c[2K", 27);
+    std::cout << "\n --- bye :^) --- \n" << std::endl;
+    std::exit(0);
 }
 
 void generate_markers(int count){
@@ -129,7 +135,7 @@ void test_network(){
 int main(int argc, char** argv )
 {
 
-    std::atexit(exiting);
+    std::signal(SIGINT, exiting);
     if (argc > 1 && strcmp(argv[1], "generate-markers") == 0){
         int count = 50;
         if(argc > 2){

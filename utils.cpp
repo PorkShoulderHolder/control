@@ -20,18 +20,6 @@ enum INIT_SPEED{
     INIT_SPEED_FAST = 4
 };
 
-cv::Mat Utils::homogenous_quad( std::vector<cv::Point2f> quad ){
-    cv::Mat out = cv::Mat::ones(3, 4, CV_32F);
-    out.at<float>(0,0) = quad[0].x;
-    out.at<float>(0,1) = quad[1].x;
-    out.at<float>(0,2) = quad[2].x;
-    out.at<float>(0,3) = quad[3].x;
-    out.at<float>(1,0) = quad[0].y;
-    out.at<float>(1,1) = quad[1].y;
-    out.at<float>(1,2) = quad[2].y;
-    out.at<float>(1,3) = quad[3].y;
-    return out;
-}
 
 LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads){
 
@@ -54,6 +42,7 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
     return p;
 };
 
+
 std::vector<char *> Utils::get_device_names_from_file(){
     std::ifstream infile(DEVICE_FILE);
     std::string line;
@@ -70,7 +59,8 @@ std::deque< std::vector<MOTOR> > command_seq_for_index(int index, int count, INI
     switch(pattern){
         case PATTERN_TYPE_ITER:
             command_mat(cv::Rect(index * speed, 0, speed, 2)) = 1;
-        default:;
+        default:
+            command_mat(cv::Rect(index * speed, 0, speed, 2)) = 1;
     }
     for(int n = 0; n < command_mat.cols; n++)
     {
@@ -97,6 +87,10 @@ void test_task_30(void){
     std::cout << "30 frames" << std::endl;
 }
 
+void end_match_aruco(){
+
+}
+
 bool Utils::begin_match_aruco() {
     //TODO: finish
     int i = 0;
@@ -106,8 +100,9 @@ bool Utils::begin_match_aruco() {
         bot->command_queue = command_seq_for_index(i, (int)State::devices.size(), speed, PATTERN_TYPE_ITER);
         i++;
     }
-
-//    State::schedule_task(t, (int)State::devices.size() * speed);
+    task t;
+    t.f;
+    State::schedule_task(t, (int)State::devices.size() * speed + 1);
 }
 
 

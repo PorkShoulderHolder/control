@@ -28,6 +28,7 @@ public:
     void set_target_location(cv::Point);
     void apply_motor_commands(std::vector<MOTOR>);
     void incr_command_queue();
+    void save_to_file()
 private:
     float left_motor_on;
     int port;
