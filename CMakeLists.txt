@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project( control )
 find_package( OpenCV REQUIRED )
-add_executable( control main.cpp bot.cpp bot.h network_manager.cpp network_manager.h state.cpp state.h utils.cpp utils.h camera_calibration.cpp camera_calibration.h)
-add_executable( mdns-mod dns-sd.c ClientCommon.c ClientCommon.h )
+add_executable( control src/main.cpp src/bot.cpp src/bot.h src/network_manager.cpp src/network_manager.h src/state.cpp src/state.h src/utils.cpp src/utils.h src/camera_calibration.cpp src/camera_calibration.h src/agent.cpp src/agent.h)
+add_executable( mdns-mod src/dns-sd.c src/ClientCommon.c src/ClientCommon.h)
 target_link_libraries( control ${OpenCV_LIBS} )
