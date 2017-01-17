@@ -10,3 +10,4 @@ CMakeCache.txt
 markertest
 cmake_install.cmake
 data
+test_suite

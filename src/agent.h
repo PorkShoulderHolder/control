@@ -7,6 +7,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
+#include <iostream>
 #include <stdlib.h>
 #include <unordered_map>
 
@@ -21,8 +23,10 @@ struct StateAction{
     int visits;
 };
 
-class StateActionSpace : private std::vector<std::vector<StateAction>>{
+class StateActionSpace : private std::vector<std::vector<StateAction> >{
 public:
+    typedef std::vector<std::vector<StateAction> > state_vector;
+
     StateActionSpace(int states_x, int states_y, int actions);
     StateActionSpace(std::string fn);
     std::vector<StateAction> get_action_values(int state);
@@ -38,6 +42,9 @@ public:
     void set_action_value(StateAction s, float value);
     void save(std::string fn);
 
+    using state_vector::at;
+    using state_vector::size;
+
     int state_count;
     int count_x;
     int count_y;
@@ -50,8 +57,10 @@ private:
 
 class Agent {
 public:
-    Agent(const StateActionSpace &O, std::function reward);
+    Agent(const StateActionSpace &O, std::function<float(StateAction)> reward);
     Agent(const StateActionSpace &O, std::string fn);
+    Agent(const StateActionSpace &O);
+
     void serialize(std::string fn);
     void update(StateAction s0, StateAction s1);
 
