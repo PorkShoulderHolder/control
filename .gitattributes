@@ -1,1 +1,4 @@
 cxxtest/* linguist-vendored
+ClientCommon.h linguist-vendored=true
+ClientCommon.c linguist-vendored=true
+dns-sd linguist-vendored=true
