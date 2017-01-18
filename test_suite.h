@@ -29,7 +29,7 @@ public:
     void test_network(){
 
     }
-    void test_agent_serialization(){
+    void test_agent(){
         srand (static_cast <unsigned> (time(0)));
         StateActionSpace s(100, 100, 4);
         for (int i = 0; i < 1000; ++i) {
