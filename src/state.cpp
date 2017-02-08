@@ -106,7 +106,6 @@ void State::schedule_task(task t, int frame_offset) {
 
 void State::update(cv::Mat image) {
 
-
     State::display_image = image;
     State::current_image = image;
     if(State::hist.size() >= State::hist_length){
@@ -121,7 +120,6 @@ void State::update(cv::Mat image) {
     current.locations = cur_device_states.first;
     current.rotations = cur_device_states.second;
     State::hist.push_front(current);
-
 
     for( Bot *b : State::devices ){
         b->incr_command_queue();
@@ -140,5 +138,5 @@ cv::Mat State::current_image;
 cv::Mat State::difference_image;
 cv::Mat State::display_image;
 std::set< int > State::marker_ids;
-cv::aruco::Dictionary State::marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
+cv::aruco::Dictionary State::marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
 

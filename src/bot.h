@@ -7,6 +7,7 @@
 
 #include <opencv2/core/types.hpp>
 #include <deque>
+#include "agent.h"
 
 enum MOTOR{
     M_RIGHT_OFF = 0,
@@ -24,18 +25,23 @@ struct phys_state{
 class Bot {
 public:
     Bot( const char *host );
+    ~Bot();
+
     void save_to_file();
     void apply_motor_commands( std::vector<MOTOR> );
     void set_target_location( cv::Point );
     void incr_command_queue();
-    static void match_movement(int);
+    static void match_movement(int, int);
 
     phys_state state;
+    cv::Point target;
+    float max_distance;
     char *host;
     std::deque< std::vector<MOTOR> > command_queue;
     bool on_off_inverted;
     bool lr_inverted;
     int aruco_id;
+    Agent *agent;
 private:
     float left_motor_on;
     int port;

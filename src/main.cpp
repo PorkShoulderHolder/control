@@ -44,6 +44,7 @@ void exiting(int i){
         off.push_back(M_RIGHT_OFF);
         off.push_back(M_LEFT_OFF);
         b->apply_motor_commands(off);
+        delete b;
     }
     printf("%c[2K", 27);
     std::cout << "\n --- bye :^) --- \n" << std::endl;
@@ -136,6 +137,7 @@ int main(int argc, char** argv )
 {
 
     std::signal(SIGINT, exiting);
+    srand (static_cast <unsigned> (time(0)));
     if (argc > 1 && strcmp(argv[1], "generate-markers") == 0){
         int count = 50;
         if(argc > 2){

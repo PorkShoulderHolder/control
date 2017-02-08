@@ -14,12 +14,12 @@
 void StateActionSpace::init(int states, int actions) {
     this->state_count = states;
     this->action_count = actions;
-    for (int i = 0; i < states; ++i) {
+    for (int i = 0; i < states; i++) {
         std::vector<StateAction> as;
-        for (int j = 0; j < actions; ++j) {
+        for (int j = 0; j < actions; j++) {
             StateAction s;
             s.visits = 0;
-            s.value = 0.0f;
+            s.value = 10.0f;
             s.x = i % this->count_x;
             s.y = i / this->count_x;
             s.action = j;
@@ -94,6 +94,7 @@ void StateActionSpace::save(std::string fn){
 }
 
 std::vector<StateAction> StateActionSpace::get_action_values(int state_x, int state_y){
+
     return this->at((unsigned long)this->count_y * state_x + state_y);
 }
 
@@ -158,8 +159,17 @@ float default_reward(StateAction s){
     /*
      * default reward is euclidean distance
      */
-    return sqrtf(powf(s.y, 2) + powf(s.x, 2));
+    return 10.0f - sqrtf(powf(s.y - 5.0f, 2) + powf(s.x - 5.0f, 2));
 }
+
+float boltzmann_decay(int t){
+    /*
+     * function determining probability of random behavior given number of previous visits
+     */
+    return 0.0f;
+}
+
+
 
 Agent::Agent(const StateActionSpace &O, std::function<float(StateAction)> reward) : Q(O) {
     int resolution = 100;
@@ -167,6 +177,9 @@ Agent::Agent(const StateActionSpace &O, std::function<float(StateAction)> reward
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;
     this->reward = reward;
+    this->learning_rate = 1.0f;
+    this->discount = 0.5f;
+    this->eps = 0.1f;
 }
 
 Agent::Agent(const StateActionSpace &O) : Q(O) {
@@ -175,15 +188,38 @@ Agent::Agent(const StateActionSpace &O) : Q(O) {
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;
     this->reward = default_reward;
+    this->learning_rate = 1.0f;
+    this->discount = 0.5f;
+    this->eps = 0.1f;
 }
 
 Agent::Agent(const StateActionSpace &O, std::string fn) : Q(O) {
     StateActionSpace *sa = new StateActionSpace(fn);
     this->Q = *sa;
     this->reward = default_reward;
+    this->learning_rate = 1.0f;
+    this->discount = 0.84f;
+    this->eps = 0.2f;
 }
 
+void Agent::serialize(std::string fn) {
+    this->Q.save(fn);
+}
 
+StateAction Agent::act(StateAction s){
+    int r = rand();
+    StateAction a = s;
+    float rf = static_cast <float> (r) / static_cast <float> (RAND_MAX);
+    if(rf < this->eps){
+        int action = r % this->Q.action_count;
+        a.action = action;
+    }
+    else{
+        a = this->Q.get_greedy_action(s);
+    }
+    this->last_action = a;
+    return a;
+}
 
 void Agent::update(StateAction s0, StateAction s1) {
     /*
@@ -193,9 +229,11 @@ void Agent::update(StateAction s0, StateAction s1) {
      * s1: state after taking action specified in s0 (only contains valid x, y fields)
      *
      */
+
     s0 = this->Q.get_state_action(s0);
     StateAction greedy_option = this->Q.get_greedy_action(s1);
     float gradient = this->reward(s1) + this->discount * greedy_option.value - s0.value;
     float q0 = s0.value + this->learning_rate * (gradient);
     this->Q.set_action_value(s0, q0);
+    this->experience_points++;
 }

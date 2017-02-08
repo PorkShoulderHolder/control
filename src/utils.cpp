@@ -33,10 +33,16 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
     cv::aruco::estimatePoseSingleMarkers(quads, 1.0f, Utils::camera_matrix, Utils::distortion_coefs,
                                          rotations, locations);
 
+    int i = 0;
     for( cv::Vec3d p3  : locations ){
         cv::Point2f p(10 * p3[0] + 100, 10 * p3[1] + 100);
+        cv::Point2f r(p.x + 10 * rotations[i][1], p.y + 10 * rotations[i][2]);
         cv::circle(State::display_image, p, 4, cv::Scalar(244,244,0));
+        cv::line(State::display_image, p, r, cv::Scalar(0,244,244));
+        i++;
     }
+
+
 
     LocationRotationVec p(locations, rotations);
     return p;
@@ -94,12 +100,13 @@ void end_match_aruco(){
 bool Utils::begin_match_aruco() {
     //TODO: finish
     int i = 0;
-    INIT_SPEED speed = INIT_SPEED_NORMAL;
+    INIT_SPEED speed = INIT_SPEED_SLOW;
 
     for( Bot *bot : State::devices ){
         bot->command_queue = command_seq_for_index(i, (int)State::devices.size(), speed, PATTERN_TYPE_ITER);
         task t;
         t.id = i;
+        t.duration = speed;
         t.f = &(Bot::match_movement);
         State::schedule_task(t, (i + 1 + 2) * speed);
         i++;

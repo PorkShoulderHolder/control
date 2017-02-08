@@ -61,14 +61,18 @@ public:
     Agent(const StateActionSpace &O, std::string fn);
     Agent(const StateActionSpace &O);
 
+
     void serialize(std::string fn);
     void update(StateAction s0, StateAction s1);
 
-    float learning_rate;
-    float discount;
-    std::function<float(StateAction)> reward;
+    StateAction act(StateAction s);
 
-private:
+    float learning_rate;
+    StateAction last_action;
+    float discount;
+    float eps;
+    int experience_points;
+    std::function<float(StateAction)> reward;
     StateActionSpace Q;
 
 };

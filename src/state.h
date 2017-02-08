@@ -33,14 +33,15 @@ struct t_frame{
 
 struct task {
     int id;
-    std::function<void(int)> f;
+    int duration;
+    std::function<void(int, int)> f;
 };
 
 struct frame_tasks {
     std::vector<task> scheduled_tasks;
     void operator()() {
         for(task t : scheduled_tasks){
-            t.f(t.id);
+            t.f(t.id, t.duration);
         }
     }
 };
