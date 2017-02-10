@@ -27,6 +27,7 @@ public:
     Bot( const char *host );
     ~Bot();
 
+    StateAction Q_indices(cv::Point2f);
     void save_to_file();
     void apply_motor_commands( std::vector<MOTOR> );
     void set_target_location( cv::Point );

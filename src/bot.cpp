@@ -32,7 +32,22 @@ void Bot::set_target_location(cv::Point target) {
     this->target = target;
 }
 
-
+StateAction Bot::Q_indices(cv::Point2f location){
+    StateAction current_state;
+    float dx = location.x;
+    float dy = location.y;
+    dx /= this->max_distance;
+    dy /= this->max_distance;
+    dx = min(dx, 99.0f);
+    dx = max(dx, 1.0f);
+    dy = min(dy, 99.0f);
+    dy = max(dy, 1.0f);
+    current_state.x = (int)(dx); // + this->max_distance / 2);
+    current_state.y = (int)(dy);//+ this->max_distance / 2);
+    current_state.action = 0;//+ this->max_distance / 2);
+    std::cout << dx << " " << dy << std::endl;
+    return current_state;
+};
 
 void Bot::incr_command_queue() {
     if(this->command_queue.size() > 0){
@@ -40,20 +55,8 @@ void Bot::incr_command_queue() {
         this->command_queue.pop_front();
     }
     else{
-        StateAction current_state;
-        float dx = (float)this->state.location[0];
-        float dy = (float)this->state.location[1];
-        dx /= this->max_distance;
-        dy /= this->max_distance;
-        dx = min(dx, 99.0f);
-        dx = max(dx, 1.0f);
-        dy = min(dy, 99.0f);
-        dy = max(dy, 1.0f);
-        current_state.x = (int)(dx); // + this->max_distance / 2);
-        current_state.y = (int)(dy);//+ this->max_distance / 2);
-        current_state.action = 0;//+ this->max_distance / 2);
-
-        std::cout << dx << " " << dy << std::endl;
+        cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
+        StateAction current_state = this->Q_indices(px);
         if(this->agent->experience_points == 0){
             this->agent->update(current_state, current_state);
         }
