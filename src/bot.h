@@ -5,7 +5,7 @@
 #ifndef CONTROL_BOT_H
 #define CONTROL_BOT_H
 
-#include <opencv2/core/types.hpp>
+#include <opencv2/opencv.hpp>
 #include <deque>
 #include "agent.h"
 
@@ -19,7 +19,7 @@ enum MOTOR{
 struct phys_state{
     cv::Vec3d location;
     cv::Vec3d velocity;
-    cv::Vec3d rotation;
+    cv::Point2d rotation;
 };
 
 class Bot {
@@ -27,15 +27,17 @@ public:
     Bot( const char *host );
     ~Bot();
 
-    StateAction Q_indices(cv::Point2f);
+    StateAction Q_indices(cv::Point2f location, cv::Point2f rotation);
     void save_to_file();
     void apply_motor_commands( std::vector<MOTOR> );
     void set_target_location( cv::Point );
     void incr_command_queue();
+    void learn();
     static void match_movement(int, int);
 
     phys_state state;
     cv::Point target;
+    cv::Mat info_image;
     float max_distance;
     char *host;
     std::deque< std::vector<MOTOR> > command_queue;

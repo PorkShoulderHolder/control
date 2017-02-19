@@ -20,6 +20,17 @@ enum INIT_SPEED{
     INIT_SPEED_FAST = 4
 };
 
+cv::Point2d Utils::getRotationFromQuad(std::vector<cv::Point2f> quad ){
+    cv::Point2f center = quad[0] + quad[1] + quad[2] + quad[3];
+    center /=4;
+    cv::Point2f r = center - quad[0];
+    r = r / cv::norm(r);
+    float radians = 1.3; // rotate direction vector
+    double sn = sin(radians * M_PI);
+    double cs = cos(radians * M_PI);
+    cv::Point2d rot(r.x * cs - r.y * sn, r.x * sn + r.y * cs);
+    return rot;
+}
 
 LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads){
 
@@ -32,24 +43,19 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
     std::vector<cv::Vec3d> locations;
     cv::aruco::estimatePoseSingleMarkers(quads, 1.0f, Utils::camera_matrix, Utils::distortion_coefs,
                                          rotations, locations);
+    std::vector<cv::Point2d> rotns;
     int i = 0;
     for( cv::Vec3d p3  : locations ){
         cv::Point2d p(10 * p3[0] + 100, 10 * p3[1] + 100);
-        cv::Point2f center = quads[i][0] + quads[i][1] + quads[i][2] + quads[i][3];
-        center /=4;
-        cv::Point2f r = center - quads[i][0];
-        r = r / cv::norm(r);
-        float radians = 1.3; // rotate direction vector
-        double sn = sin(radians * M_PI);
-        double cs = cos(radians * M_PI);
-        cv::Point2d rot(r.x * cs - r.y * sn, r.x * sn + r.y * cs);
-        r = cv::Point2d(p.x + 10 * rot.x, p.y + 10 * rot.y);
+        cv::Point2d rot = Utils::getRotationFromQuad(quads[i]);
+        rotns.push_back(rot);
+        cv::Point2d r(p.x + 10 * rot.x, p.y + 10 * rot.y);
         cv::circle(State::display_image, p, 4, cv::Scalar(244,244,0));
         cv::line(State::display_image, p, r, cv::Scalar(0,244,244));
         i++;
     }
 
-    LocationRotationVec p(locations, rotations);
+    LocationRotationVec p(locations, rotns);
     return p;
 };
 

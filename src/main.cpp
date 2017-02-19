@@ -14,7 +14,7 @@
 #include <csignal>
 
 
-#define DEBUG false
+#define DEBUG true
 
 using namespace cv;
 using namespace std;
@@ -93,7 +93,13 @@ void loop_outer_log(){
 
 
 void calibrate(int device_index){
+    
     cv::VideoCapture input_stream(device_index);
+
+    if (!input_stream.isOpened()) {
+        std::cout << "Unable to read stream from specified device." << std::endl;
+        return;
+    }
 
     cv::Mat current_image;
     int i = 1;
@@ -107,6 +113,8 @@ void calibrate(int device_index){
     init_state();
 
     while(1){
+        std::cout << "clibrating" << std::endl;
+
         if(i % sample_pd == 0){
             time(&finish);
             double seconds = difftime (finish, start);
@@ -121,8 +129,12 @@ void calibrate(int device_index){
         }
 
         cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
-        cv::resize(State::display_image, State::display_image, Size(1224, 768), 0, 0, INTER_CUBIC);
+        cv::resize(State::display_image, State::display_image, Size(612, 384), 0, 0, INTER_CUBIC);
         cv::imshow("output", State::display_image);
+        for(Bot *b: State::devices){
+            cv::resize(State::display_image, State::display_image, Size(200, 200), 0, 0, INTER_CUBIC);
+            cv::imshow(b->host, b->info_image);
+        }
         if(waitKey(30) >= 0) break;
         i++;
     }
@@ -168,7 +180,7 @@ int main(int argc, char** argv )
     }
     else if(argc > 1 && strcmp(argv[1], "calibrate") == 0){
         system("gtimeout 2 ./mdns-mod -B");
-        int device_index = 1;
+        int device_index = 0;
         if(argc > 2){
             device_index = atoi(argv[2]);
         }

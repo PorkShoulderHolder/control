@@ -23,35 +23,14 @@ std::vector<Bot> State::bots_for_ids(std::vector<char *> hosts, std::vector<int>
 }
 
 
-std::vector< std::unordered_map<int, cv::Point2f> > State::get_differentials() {
-  //  float mvmt_threshold = 3.0;
-//    for(auto id : State::marker_ids) {
-//        int c = State::hist.size();
-//        std::cout << "hi " << id << std::endl;
-//        if(c > 1){
-//            t_frame frame = State::hist[0];
-//            t_frame prev = State::hist[1];
-//            auto current_loc = frame.locations.find(id);
-//            auto prev_loc = prev.locations.find(id);
-//            if(current_loc != frame.locations.end() && prev_loc != prev.locations.end()){
-//                double d = cv::norm(current_loc->second - prev_loc->second);
-//                if(d > mvmt_threshold){
-//                    std::cout << "marker " << id << " moving" << std::endl;
-//                    break;
-//                }
-//            }
-//        }
-//    }
-};
-
 LocationRotationMap State::update_markers(cv::Mat image){
     vector< int > ids;
     vector< vector<Point2f> > marker_corners, rejected;
     cv::aruco::DetectorParameters parameters;
     cv::aruco::detectMarkers(image, State::marker_dictionary, marker_corners, ids, parameters, rejected);
-    std::pair<std::vector<cv::Vec3d>, std::vector<cv::Vec3d> > normal_pos = Utils::compute_ground_plane(marker_corners);
+    std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > normal_pos = Utils::compute_ground_plane(marker_corners);
     std::vector<cv::Vec3d> locations = normal_pos.first;
-    std::vector<cv::Vec3d> rotations = normal_pos.second;
+    std::vector<cv::Point2d> rotations = normal_pos.second;
 
     std::unordered_map<int, cv::Vec3d> marker_locations;
     std::unordered_map<int, cv::Vec3d> marker_rotations;
@@ -59,7 +38,7 @@ LocationRotationMap State::update_markers(cv::Mat image){
     State::marker_ids.insert(ids.begin(), ids.end());
     for(int i = 0; i < ids.size(); i++){
         cv::Vec3d location = locations[i];
-        cv::Vec3d rotation = rotations[i];
+        cv::Vec3d rotation(rotations[i].x, rotations[i].y, 0);
         int id = ids[i];
 
         std::pair<int, cv::Vec3d> loc_kv(id, location);
@@ -71,7 +50,7 @@ LocationRotationMap State::update_markers(cv::Mat image){
     for( Bot *b : State::devices ){
         if(b->aruco_id != NULL){
             b->state.location = marker_locations[b->aruco_id];
-            b->state.rotation = marker_rotations[b->aruco_id];
+            b->state.rotation = cv::Vec2d(marker_rotations[b->aruco_id][0], marker_rotations[b->aruco_id][1]);
         }
     }
 
@@ -118,7 +97,7 @@ void State::update(cv::Mat image) {
     current.ms = ms;
     LocationRotationMap cur_device_states = State::update_markers(image);
     current.locations = cur_device_states.first;
-    current.rotations = cur_device_states.second;
+
     State::hist.push_front(current);
 
     for( Bot *b : State::devices ){

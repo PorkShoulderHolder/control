@@ -18,6 +18,7 @@ Bot::Bot(const char *host){
     this->agent = new Agent(*sa);
     this->max_distance = 0.4f;
     this->target = cv::Point(5, 10);
+    //cv::namedWindow(this->host, cv::WINDOW_NORMAL );
 }
 
 Bot::~Bot() {
@@ -32,10 +33,10 @@ void Bot::set_target_location(cv::Point target) {
     this->target = target;
 }
 
-StateAction Bot::Q_indices(cv::Point2f location){
+StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     StateAction current_state;
-    float dx = location.x;
-    float dy = location.y;
+    float dx = location.x - this->target.x;
+    float dy = location.y - this->target.y;
     dx /= this->max_distance;
     dy /= this->max_distance;
     dx = min(dx, 99.0f);
@@ -49,49 +50,54 @@ StateAction Bot::Q_indices(cv::Point2f location){
     return current_state;
 };
 
+void Bot::learn(){
+    cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
+    cv::Point2d rx = this->state.rotation;
+    StateAction current_state = this->Q_indices(px, rx);
+    if(this->agent->experience_points == 0){
+        this->agent->update(current_state, current_state);
+    }
+    else{
+        this->agent->update(this->agent->last_action, current_state);
+    }
+    StateAction new_s = this->agent->act(current_state);
+    std::vector<MOTOR> c;
+    std::vector<MOTOR> c1;
+    std::vector<MOTOR> c2;
+    std::vector<MOTOR> c3;
+    switch (new_s.action){
+        case 0:
+            c.push_back(M_LEFT_OFF);
+            c.push_back(M_RIGHT_OFF);
+            this->apply_motor_commands(c);
+            break;
+        case 1:
+            c1.push_back(M_LEFT_ON);
+            c1.push_back(M_RIGHT_ON);
+            this->apply_motor_commands(c1);
+            break;
+        case 2:
+            c2.push_back(M_LEFT_OFF);
+            c2.push_back(M_RIGHT_ON);
+            this->apply_motor_commands(c2);
+            break;
+        case 3:
+            c3.push_back(M_LEFT_ON);
+            c3.push_back(M_RIGHT_OFF);
+            this->apply_motor_commands(c3);
+            break;
+        default:
+            break;
+    }
+}
+
 void Bot::incr_command_queue() {
     if(this->command_queue.size() > 0){
         this->apply_motor_commands(this->command_queue.front());
         this->command_queue.pop_front();
     }
     else{
-        cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
-        StateAction current_state = this->Q_indices(px);
-        if(this->agent->experience_points == 0){
-            this->agent->update(current_state, current_state);
-        }
-        else{
-            this->agent->update(this->agent->last_action, current_state);
-        }
-        StateAction new_s = this->agent->act(current_state);
-        std::vector<MOTOR> c;
-        std::vector<MOTOR> c1;
-        std::vector<MOTOR> c2;
-        std::vector<MOTOR> c3;
-        switch (new_s.action){
-            case 0:
-                c.push_back(M_LEFT_OFF);
-                c.push_back(M_RIGHT_OFF);
-                this->apply_motor_commands(c);
-                break;
-            case 1:
-                c1.push_back(M_LEFT_ON);
-                c1.push_back(M_RIGHT_ON);
-                this->apply_motor_commands(c1);
-                break;
-            case 2:
-                c2.push_back(M_LEFT_OFF);
-                c2.push_back(M_RIGHT_ON);
-                this->apply_motor_commands(c2);
-                break;
-            case 3:
-                c3.push_back(M_LEFT_ON);
-                c3.push_back(M_RIGHT_OFF);
-                this->apply_motor_commands(c3);
-                break;
-            default:
-                break;
-        }
+        this->learn();
     }
 }
 

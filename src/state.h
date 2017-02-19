@@ -18,7 +18,7 @@
 
 
 typedef std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> > LocationRotationMap;
-typedef std::pair<std::vector<cv::Vec3d>, std::vector<cv::Vec3d> > LocationRotationVec;
+typedef std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > LocationRotationVec;
 
 
 /*
@@ -26,8 +26,8 @@ typedef std::pair<std::vector<cv::Vec3d>, std::vector<cv::Vec3d> > LocationRotat
  */
 
 struct t_frame{
-    std::unordered_map<int, cv::Vec3d> rotations;
     std::unordered_map<int, cv::Vec3d> locations;
+    std::unordered_map<int, cv::Point2d> rotations;
     long long int ms;
 };
 
