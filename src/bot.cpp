@@ -14,11 +14,16 @@ Bot::Bot(const char *host){
     this->port = 8888;
     this->aruco_id = NULL;
     this->host = (char *)host;
-    const StateActionSpace *sa = new StateActionSpace(100, 100, 4);
+    int x_width = 100;
+    int y_width = 100;
+    int action_count = 4;
+    const StateActionSpace *sa = new StateActionSpace(x_width, y_width, action_count);
     this->agent = new Agent(*sa);
     this->max_distance = 0.4f;
     this->target = cv::Point(5, 10);
-    //cv::namedWindow(this->host, cv::WINDOW_NORMAL );
+    for (int i = 0; i < action_count; ++i) {
+        this->info_images.push_back(cv::Mat::ones(sa->count_x, sa->count_y, CV_32F));
+    }
 }
 
 Bot::~Bot() {
@@ -32,6 +37,15 @@ Bot::~Bot() {
 void Bot::set_target_location(cv::Point target) {
     this->target = target;
 }
+
+void Bot::update_image_for_state(StateAction s){
+    std::vector<StateAction> sas = this->agent->Q.get_action_values(s);
+    for(StateAction sa : sas){
+        this->info_images[sa.action].at<float>(sa.x, sa.y) = sa.value;
+    }
+}
+
+
 
 StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     StateAction current_state;
@@ -47,6 +61,7 @@ StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     current_state.y = (int)(dy);//+ this->max_distance / 2);
     current_state.action = 0;//+ this->max_distance / 2);
     std::cout << dx << " " << dy << std::endl;
+    std::cout << this->target << std::endl;
     return current_state;
 };
 
@@ -54,17 +69,24 @@ void Bot::learn(){
     cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
     cv::Point2d rx = this->state.rotation;
     StateAction current_state = this->Q_indices(px, rx);
+
+    this->update_image_for_state(current_state);
+
     if(this->agent->experience_points == 0){
+
         this->agent->update(current_state, current_state);
     }
     else{
+
         this->agent->update(this->agent->last_action, current_state);
     }
+
     StateAction new_s = this->agent->act(current_state);
     std::vector<MOTOR> c;
     std::vector<MOTOR> c1;
     std::vector<MOTOR> c2;
     std::vector<MOTOR> c3;
+
     switch (new_s.action){
         case 0:
             c.push_back(M_LEFT_OFF);
@@ -145,10 +167,6 @@ void Bot::match_movement(int bot_id, int duration) {
     std::cout << b->host <<  " --> marker " << max_id << std::endl;
     b->aruco_id = max_id;
 }
-//
-//bool Bot::was_active() {
-//
-//}
 
 void Bot::apply_motor_commands(std::vector<MOTOR> commands) {
     NetworkManager *manager = new NetworkManager();

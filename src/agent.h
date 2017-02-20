@@ -61,7 +61,6 @@ public:
     Agent(const StateActionSpace &O, std::string fn);
     Agent(const StateActionSpace &O);
 
-
     void serialize(std::string fn);
     void update(StateAction s0, StateAction s1);
 

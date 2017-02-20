@@ -15,6 +15,8 @@ using namespace cv;
 using namespace std;
 
 
+typedef std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > LocationRotationVec;
+typedef std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> > LocationRotationMap;
 
 std::vector<Bot> State::bots_for_ids(std::vector<char *> hosts, std::vector<int> ids) {
     //TODO: finish
@@ -36,22 +38,29 @@ LocationRotationMap State::update_markers(cv::Mat image){
     std::unordered_map<int, cv::Vec3d> marker_rotations;
 
     State::marker_ids.insert(ids.begin(), ids.end());
+    cv::Vec3d target(0,0,0);
+
     for(int i = 0; i < ids.size(); i++){
+
         cv::Vec3d location = locations[i];
         cv::Vec3d rotation(rotations[i].x, rotations[i].y, 0);
         int id = ids[i];
 
-        std::pair<int, cv::Vec3d> loc_kv(id, location);
-        std::pair<int, cv::Vec3d> rot_kv(id, rotation);
-        marker_locations.insert(loc_kv);
-        marker_rotations.insert(rot_kv);
+        if(id != TARGET_MARKER){
+            std::pair<int, cv::Vec3d> loc_kv(id, location);
+            std::pair<int, cv::Vec3d> rot_kv(id, rotation);
+            marker_locations.insert(loc_kv);
+            marker_rotations.insert(rot_kv);
+        }
+        else{
+            target = location;
+        }
     }
 
     for( Bot *b : State::devices ){
-        if(b->aruco_id != NULL){
-            b->state.location = marker_locations[b->aruco_id];
-            b->state.rotation = cv::Vec2d(marker_rotations[b->aruco_id][0], marker_rotations[b->aruco_id][1]);
-        }
+        b->state.location = marker_locations[b->aruco_id];
+        b->state.rotation = cv::Vec2d(marker_rotations[b->aruco_id][0], marker_rotations[b->aruco_id][1]);
+        b->target = cv::Point(target[0], target[1]);
     }
 
     if(DISPLAY_ON){
@@ -63,10 +72,13 @@ LocationRotationMap State::update_markers(cv::Mat image){
 
 void init_state(){
     std::vector<char *> hosts = Utils::get_device_names_from_file();
+
     for (char *host : hosts){
+
         Bot *b  = new Bot(host);
         State::devices.push_back(b);
     }
+
     Utils::begin_match_aruco();
 }
 

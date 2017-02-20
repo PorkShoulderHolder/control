@@ -94,7 +94,6 @@ void StateActionSpace::save(std::string fn){
 }
 
 std::vector<StateAction> StateActionSpace::get_action_values(int state_x, int state_y){
-
     return this->at((unsigned long)this->count_y * state_x + state_y);
 }
 
@@ -180,6 +179,7 @@ Agent::Agent(const StateActionSpace &O, std::function<float(StateAction)> reward
     this->learning_rate = 1.0f;
     this->discount = 0.5f;
     this->eps = 0.1f;
+    this->experience_points = 0;
 }
 
 Agent::Agent(const StateActionSpace &O) : Q(O) {
@@ -191,6 +191,7 @@ Agent::Agent(const StateActionSpace &O) : Q(O) {
     this->learning_rate = 1.0f;
     this->discount = 0.5f;
     this->eps = 0.1f;
+    this->experience_points = 0;
 }
 
 Agent::Agent(const StateActionSpace &O, std::string fn) : Q(O) {
@@ -200,6 +201,7 @@ Agent::Agent(const StateActionSpace &O, std::string fn) : Q(O) {
     this->learning_rate = 1.0f;
     this->discount = 0.84f;
     this->eps = 0.2f;
+    this->experience_points = 0;
 }
 
 void Agent::serialize(std::string fn) {
@@ -231,7 +233,9 @@ void Agent::update(StateAction s0, StateAction s1) {
      */
 
     s0 = this->Q.get_state_action(s0);
+
     StateAction greedy_option = this->Q.get_greedy_action(s1);
+
     float gradient = this->reward(s1) + this->discount * greedy_option.value - s0.value;
     float q0 = s0.value + this->learning_rate * (gradient);
     this->Q.set_action_value(s0, q0);

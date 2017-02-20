@@ -33,11 +33,12 @@ public:
     void set_target_location( cv::Point );
     void incr_command_queue();
     void learn();
+    void update_image_for_state(StateAction);
     static void match_movement(int, int);
 
     phys_state state;
     cv::Point target;
-    cv::Mat info_image;
+    std::vector<cv::Mat> info_images;
     float max_distance;
     char *host;
     std::deque< std::vector<MOTOR> > command_queue;

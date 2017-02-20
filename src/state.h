@@ -2,6 +2,13 @@
 // Created by Sam Royston on 12/19/16.
 //
 
+#ifndef CONTROL_STATE_H
+#define CONTROL_STATE_H
+
+#define INFO_WINDOW "Info"
+#define MAIN_WINDOW "Display"
+#define TARGET_MARKER 34
+
 #define DISPLAY_ON true
 #define MAX_TASK_DEQUE_SIZE 1000
 #include "bot.h"
@@ -13,12 +20,10 @@
 #include <stdlib.h>
 #include "utils.h"
 
-#ifndef CONTROL_STATE_H
-#define CONTROL_STATE_H
 
 
-typedef std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> > LocationRotationMap;
-typedef std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > LocationRotationVec;
+
+
 
 
 /*
@@ -75,7 +80,6 @@ public:
 private:
     static std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >
             update_markers(cv::Mat);
-	static std::vector< std::unordered_map<int, cv::Point2f> > get_differentials();
 
     static cv::aruco::Dictionary marker_dictionary;
 };

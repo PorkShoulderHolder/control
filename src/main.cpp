@@ -14,7 +14,7 @@
 #include <csignal>
 
 
-#define DEBUG true
+#define DEBUG false
 
 using namespace cv;
 using namespace std;
@@ -90,7 +90,63 @@ void loop_outer_log(){
     }
     std::cout << "=========" << std::endl;
 }
+std::string type2str(int type) {
+    std::string r;
 
+    uchar depth = type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+    switch ( depth ) {
+        case CV_8U:  r = "8U"; break;
+        case CV_8S:  r = "8S"; break;
+        case CV_16U: r = "16U"; break;
+        case CV_16S: r = "16S"; break;
+        case CV_32S: r = "32S"; break;
+        case CV_32F: r = "32F"; break;
+        case CV_64F: r = "64F"; break;
+        default:     r = "User"; break;
+    }
+
+    r += "C";
+    r += (chans+'0');
+
+    return r;
+}
+
+void draw_bots_data(){
+    int i = 0;
+    int width = 200;
+    int buffer = 10;
+    int items_per_row = 5;
+    int frame_widthx = 22;
+    int frame_widthy = 3;
+    cv::Mat display_image((int)(2 + (State::devices.size() / items_per_row)) * (width + 2 * buffer) + (2 * frame_widthy),
+                          items_per_row * (width + buffer) + 2 * frame_widthx,
+                          CV_32F);
+
+    for(Bot *b: State::devices){
+
+        int x = (i % items_per_row) * width + buffer;
+        int y = (int)(i / items_per_row) * width + buffer * 2;
+        std::string s = std::to_string(i);
+        cv::Point p;
+        p.x = x + frame_widthx;
+        p.y = y + frame_widthy;
+        cv::Rect r = cv::Rect(x + 2 * buffer, y + 2 * buffer, width, width);
+
+        int v = 2;
+        for(int k = 0; k < b->info_images.size(); k++){
+            cv::Mat m = b->info_images[k];
+            cv::Rect sub_r(r.x + (k % v) * (width / 2), r.y + (k / v) * (width / 2), width / 2, width / 2);
+            cv::Mat ma;
+            m.copyTo(ma);
+            display_image(sub_r) = ma;
+        }
+        cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1);
+        i++;
+    }
+    cv::imshow(INFO_WINDOW, display_image);
+}
 
 void calibrate(int device_index){
     
@@ -108,12 +164,13 @@ void calibrate(int device_index){
     std::string fps_str = "0 fps";
     int sample_pd = 80;
     cv::Point text_loc(20, 20);
-    cv::namedWindow( "output", cv::WINDOW_NORMAL );
+    cv::namedWindow(MAIN_WINDOW, cv::WINDOW_NORMAL );
+    cv::namedWindow(INFO_WINDOW, cv::WINDOW_NORMAL );
 
     init_state();
 
+
     while(1){
-        std::cout << "clibrating" << std::endl;
 
         if(i % sample_pd == 0){
             time(&finish);
@@ -123,18 +180,16 @@ void calibrate(int device_index){
             time(&start);
         }
         input_stream >> current_image;
+        cv::resize(current_image, current_image, Size(612, 384), 0, 0, INTER_CUBIC);
+
         State::update(current_image);
         if(DEBUG){
             loop_outer_log();
         }
 
         cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
-        cv::resize(State::display_image, State::display_image, Size(612, 384), 0, 0, INTER_CUBIC);
-        cv::imshow("output", State::display_image);
-        for(Bot *b: State::devices){
-            cv::resize(State::display_image, State::display_image, Size(200, 200), 0, 0, INTER_CUBIC);
-            cv::imshow(b->host, b->info_image);
-        }
+        cv::imshow(MAIN_WINDOW, State::display_image);
+        draw_bots_data();
         if(waitKey(30) >= 0) break;
         i++;
     }
