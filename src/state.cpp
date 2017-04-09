@@ -128,6 +128,8 @@ std::deque< frame_tasks > State::task_queue;
 cv::Mat State::current_image;
 cv::Mat State::difference_image;
 cv::Mat State::display_image;
+cv::Mat State::info_image = cv::Mat::zeros(10,10, CV_32F);
+
 std::set< int > State::marker_ids;
 cv::aruco::Dictionary State::marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
 

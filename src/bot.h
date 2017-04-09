@@ -29,11 +29,14 @@ public:
 
     StateAction Q_indices(cv::Point2f location, cv::Point2f rotation);
     void save_to_file();
+    void load_info_image();
+    void set_color(std::vector<StateAction>);
+    void set_color(std::vector<StateAction>, cv::Vec3f);
     void apply_motor_commands( std::vector<MOTOR> );
     void set_target_location( cv::Point );
     void incr_command_queue();
     void learn();
-    void update_image_for_state(StateAction);
+    void update_image_for_state(StateAction prev, StateAction s);
     static void match_movement(int, int);
 
     phys_state state;

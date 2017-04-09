@@ -46,12 +46,12 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
     std::vector<cv::Point2d> rotns;
     int i = 0;
     for( cv::Vec3d p3  : locations ){
-        cv::Point2d p(10 * p3[0] + 100, 10 * p3[1] + 100);
+        cv::Point2d p(4.0f * p3[0] + 400, 4.0f * p3[1] + 400);
         cv::Point2d rot = Utils::getRotationFromQuad(quads[i]);
         rotns.push_back(rot);
-        cv::Point2d r(p.x + 10 * rot.x, p.y + 10 * rot.y);
-        cv::circle(State::display_image, p, 4, cv::Scalar(244,244,0));
-        cv::line(State::display_image, p, r, cv::Scalar(0,244,244));
+        cv::Point2d r(p.x + 20 * rot.x, p.y + 20 * rot.y);
+        cv::circle(State::display_image, p, 10, cv::Scalar(244,244,0), 5);
+        cv::line(State::display_image, p, r, cv::Scalar(0,244,244), 5);
         i++;
     }
 

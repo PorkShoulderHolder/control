@@ -23,7 +23,7 @@ struct StateAction{
     int visits;
 };
 
-class StateActionSpace : private std::vector<std::vector<StateAction> >{
+class StateActionSpace : public std::vector<std::vector<StateAction> >{
 public:
     typedef std::vector<std::vector<StateAction> > state_vector;
 
@@ -47,6 +47,7 @@ public:
 
     int state_count;
     int count_x;
+    float max_q;
     int count_y;
     int action_count;
 private:
@@ -57,7 +58,7 @@ private:
 
 class Agent {
 public:
-    Agent(const StateActionSpace &O, std::function<float(StateAction)> reward);
+    Agent(const StateActionSpace &O, std::function<float(StateAction, StateActionSpace)> reward);
     Agent(const StateActionSpace &O, std::string fn);
     Agent(const StateActionSpace &O);
 
@@ -71,7 +72,7 @@ public:
     float discount;
     float eps;
     int experience_points;
-    std::function<float(StateAction)> reward;
+    std::function<float(StateAction, StateActionSpace)> reward;
     StateActionSpace Q;
 
 };

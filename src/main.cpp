@@ -55,8 +55,7 @@ void generate_markers(int count){
     cv::Mat markerImage; 
     cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_1000);
     int i;
-    int pw = 100;
-    
+
     const int width = (int)sqrt(count);
     cv::Mat display_image = cv::Mat::ones((count / 5) * 150 + 20, 760, CV_32F);
     int buffer = 10;
@@ -70,7 +69,6 @@ void generate_markers(int count){
       p.x = x + 22;
       p.y = y + 3;
       cv::Rect r = cv::Rect(x + 20, y + 20, 100, 100);
-      cv::Mat si = display_image(r);
       markerImage.copyTo(display_image(r));
       cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1); 
     }
@@ -122,7 +120,7 @@ void draw_bots_data(){
     int frame_widthy = 3;
     cv::Mat display_image((int)(2 + (State::devices.size() / items_per_row)) * (width + 2 * buffer) + (2 * frame_widthy),
                           items_per_row * (width + buffer) + 2 * frame_widthx,
-                          CV_32F);
+                          CV_32FC3);
 
     for(Bot *b: State::devices){
 
@@ -134,30 +132,38 @@ void draw_bots_data(){
         p.y = y + frame_widthy;
         cv::Rect r = cv::Rect(x + 2 * buffer, y + 2 * buffer, width, width);
 
+        double sum = 0.0;
         int v = 2;
         for(int k = 0; k < b->info_images.size(); k++){
             cv::Mat m = b->info_images[k];
             cv::Rect sub_r(r.x + (k % v) * (width / 2), r.y + (k / v) * (width / 2), width / 2, width / 2);
             cv::Mat ma;
+            double min, max;
             m.copyTo(ma);
-            display_image(sub_r) = ma;
+            cv::resize(ma, ma, sub_r.size());
+            ma = ma.t();
+            ma.copyTo(display_image(sub_r));
         }
         cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1);
         i++;
     }
-    cv::imshow(INFO_WINDOW, display_image);
+    State::info_image = display_image;
+
 }
 
 void calibrate(int device_index){
     
+    std::cout << "here " << std::endl;
     cv::VideoCapture input_stream(device_index);
 
+    std::cout << "here " << std::endl;
     if (!input_stream.isOpened()) {
         std::cout << "Unable to read stream from specified device." << std::endl;
         return;
     }
-
+    std::cout << "here " << std::endl;
     cv::Mat current_image;
+    std::cout << "here " << std::endl;
     int i = 1;
     time_t start, finish;
     time(&start);
@@ -180,16 +186,20 @@ void calibrate(int device_index){
             time(&start);
         }
         input_stream >> current_image;
-        cv::resize(current_image, current_image, Size(612, 384), 0, 0, INTER_CUBIC);
 
         State::update(current_image);
         if(DEBUG){
             loop_outer_log();
         }
 
-        cv::putText(State::display_image, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
-        cv::imshow(MAIN_WINDOW, State::display_image);
+        cv::Mat final_draw;
+        cv::resize(State::display_image, final_draw, Size(612, 384));
+
+        cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
+        cv::imshow(MAIN_WINDOW, final_draw);
+        cv::imshow(INFO_WINDOW, State::info_image);
         draw_bots_data();
+
         if(waitKey(30) >= 0) break;
         i++;
     }

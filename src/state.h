@@ -76,6 +76,7 @@ public:
     static std::deque<t_frame> hist;
     static std::deque< frame_tasks > task_queue;
     static cv::Mat display_image;
+    static cv::Mat info_image;
 
 private:
     static std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >

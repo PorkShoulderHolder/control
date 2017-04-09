@@ -14,12 +14,19 @@
 void StateActionSpace::init(int states, int actions) {
     this->state_count = states;
     this->action_count = actions;
+    this->max_q = 0.0f;
     for (int i = 0; i < states; i++) {
         std::vector<StateAction> as;
         for (int j = 0; j < actions; j++) {
             StateAction s;
             s.visits = 0;
-            s.value = 10.0f;
+            if( j == 0 )
+            {
+                s.value = 68.0f;
+            }
+            else{
+                s.value = 70.0f;
+            }
             s.x = i % this->count_x;
             s.y = i / this->count_x;
             s.action = j;
@@ -39,6 +46,7 @@ StateActionSpace::StateActionSpace(std::string fn) {
     std::ifstream input_stream(fn);
     std::string line;
     int rows = 0;
+    this->max_q = 0.0f;
     while(std::getline(input_stream, line)){
         std::stringstream ss(line);
         std::string vec_string;
@@ -52,6 +60,8 @@ StateActionSpace::StateActionSpace(std::string fn) {
             while(vs >> value >> visits){
                 StateAction s;
                 s.value = value;
+
+                this->max_q = this->max_q < value ? value : this->max_q;
                 s.visits = visits;
                 s.x = cols;
                 s.y = rows;
@@ -136,6 +146,7 @@ float StateActionSpace::get_action_value(int state_x, int state_y, int action) {
 void StateActionSpace::set_action_value(int state, int action, float value) {
     StateAction s = this->at((unsigned long) state).at((unsigned long) action);
     s.value = value;
+    this->max_q = this->max_q < value ? value : this->max_q;
     s.visits++;
     this->at((unsigned long) state).at((unsigned long) action) = s;
 }
@@ -145,6 +156,7 @@ void StateActionSpace::set_action_value(int state_x, int state_y, int action, fl
 }
 
 void StateActionSpace::set_action_value(StateAction s, float value) {
+
     this->set_action_value(s.x, s.y, s.action, value);
 }
 
@@ -154,11 +166,21 @@ void StateActionSpace::set_action_value(StateAction s, float value) {
  *
  */
 
-float default_reward(StateAction s){
+float default_reward(StateAction s, StateActionSpace sasp){
     /*
-     * default reward is euclidean distance
+     * default reward is euclidean distance from the center of the matrix (max ~ 70)
+     * ______________
+     * |            |
+     * |            |
+     * |            |
+     * |     *      |
+     * |            |
+     * |            |
+     * |            |
+     * --------------
      */
-    return 10.0f - sqrtf(powf(s.y - 5.0f, 2) + powf(s.x - 5.0f, 2));
+    float max_d = sqrtf(powf(sasp.count_x/2, 2) + powf(sasp.count_y/2, 2));
+    return max_d - sqrtf(powf(s.x - (sasp.count_x/2), 2) + powf(s.y - (sasp.count_y/2), 2));
 }
 
 float boltzmann_decay(int t){
@@ -170,8 +192,8 @@ float boltzmann_decay(int t){
 
 
 
-Agent::Agent(const StateActionSpace &O, std::function<float(StateAction)> reward) : Q(O) {
-    int resolution = 100;
+Agent::Agent(const StateActionSpace &O, std::function<float(StateAction, StateActionSpace)> reward) : Q(O) {
+    int resolution = 50;
     int actions = 4;
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;
@@ -183,7 +205,7 @@ Agent::Agent(const StateActionSpace &O, std::function<float(StateAction)> reward
 }
 
 Agent::Agent(const StateActionSpace &O) : Q(O) {
-    int resolution = 100;
+    int resolution = 50;
     int actions = 4;
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;
@@ -200,7 +222,7 @@ Agent::Agent(const StateActionSpace &O, std::string fn) : Q(O) {
     this->reward = default_reward;
     this->learning_rate = 1.0f;
     this->discount = 0.84f;
-    this->eps = 0.2f;
+    this->eps = 0.1f;
     this->experience_points = 0;
 }
 
@@ -236,8 +258,9 @@ void Agent::update(StateAction s0, StateAction s1) {
 
     StateAction greedy_option = this->Q.get_greedy_action(s1);
 
-    float gradient = this->reward(s1) + this->discount * greedy_option.value - s0.value;
+    float gradient = this->reward(s1, this->Q) + this->discount * greedy_option.value - s0.value;
     float q0 = s0.value + this->learning_rate * (gradient);
     this->Q.set_action_value(s0, q0);
+    std::cout << this->reward(s1, this->Q) << std::endl;
     this->experience_points++;
 }
