@@ -27,7 +27,11 @@ public:
 
     }
     void test_network(){
-
+        Bot *bot = new Bot("");
+        StateAction s;
+        s.x = 2;
+        s.y = 4;
+        bot->train_action(s);
     }
     void test_agent(){
         srand (static_cast <unsigned> (time(0)));

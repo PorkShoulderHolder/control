@@ -267,7 +267,8 @@ int Bot::train_action(StateAction state_action) {
     msg += "{'x':" + std::to_string(state_action.x);
     msg += ",'y':" + std::to_string(state_action.y);
     msg += ",'id':" + std::to_string(this->aruco_id) + "}";
-    char* response = manager->send_tcp(this->host, (char*)msg.c_str(), this->port);
+    char buffer[1024];
+    char* response = manager->send_tcp(this->host, (char*)msg.c_str(), this->port, buffer);
     return atoi(response);
 }
 

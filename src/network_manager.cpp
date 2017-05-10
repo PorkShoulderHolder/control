@@ -101,3 +101,4 @@ char* NetworkManager::send_tcp(char *hostname, char *msg, int port, char* buf) {
 }
 
 int NetworkManager::sock = 0;
+int NetworkManager::backend_sock = 0;
