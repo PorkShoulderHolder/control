@@ -1,0 +1,11 @@
+__author__ = 'sam.royston'
+MSG_TYPE_KEY = "msg_type"
+REWARD_MSG = "reward"
+STATE_MSG = "state"
+INIT_MSG = "init"
+BATCH_SIZE = 128
+GAMMA = 0.999
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 200
+MODEL_FN = "archive/q_model"
