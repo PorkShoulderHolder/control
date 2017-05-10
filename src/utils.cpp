@@ -7,7 +7,7 @@
 #include <fstream>
 #include "utils.h"
 #include "state.h"
-#define DEVICE_FILE "domains.txt"
+#define DEVICE_FILE "configuration_files/domains.txt"
 
 enum PATTERN_TYPE{
     PATTERN_TYPE_ITER,

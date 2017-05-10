@@ -100,6 +100,55 @@ StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     return current_state;
 };
 
+void grid_based_learning(Bot *bot){
+    cv::Point2f px((float)bot->state.location[0], (float)bot->state.location[1]);
+    cv::Point2d rx = bot->state.rotation;
+    StateAction current_state = bot->Q_indices(px, rx);
+
+
+    if(bot->agent->experience_points == 0){
+
+        bot->agent->update(current_state, current_state);
+    }
+    else{
+
+        bot->agent->update(bot->agent->last_action, current_state);
+        bot->load_info_image();
+        bot->update_image_for_state(current_state, current_state);
+    }
+
+    StateAction new_s = bot->agent->act(current_state);
+    std::vector<MOTOR> c;
+    std::vector<MOTOR> c1;
+    std::vector<MOTOR> c2;
+    std::vector<MOTOR> c3;
+
+    switch (new_s.action){
+        case 0:
+            c.push_back(M_LEFT_OFF);
+            c.push_back(M_RIGHT_OFF);
+            bot->apply_motor_commands(c);
+            break;
+        case 1:
+            c1.push_back(M_LEFT_ON);
+            c1.push_back(M_RIGHT_ON);
+            bot->apply_motor_commands(c1);
+            break;
+        case 2:
+            c2.push_back(M_LEFT_OFF);
+            c2.push_back(M_RIGHT_ON);
+            bot->apply_motor_commands(c2);
+            break;
+        case 3:
+            c3.push_back(M_LEFT_ON);
+            c3.push_back(M_RIGHT_OFF);
+            bot->apply_motor_commands(c3);
+            break;
+        default:
+            break;
+    }
+}
+
 void Bot::learn(){
     cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
     cv::Point2d rx = this->state.rotation;
@@ -207,8 +256,18 @@ void Bot::match_movement(int bot_id, int duration) {
 void Bot::apply_motor_commands(std::vector<MOTOR> commands) {
     NetworkManager *manager = new NetworkManager();
     for (int i = 0; i < 2; i++){
-        manager->send_to(this->host, (char *)M_COMMAND_STR[commands[i]], this->port);
+        manager->send_udp(this->host, (char *) M_COMMAND_STR[commands[i]], this->port);
     }
 }
 
+
+int Bot::train_action(StateAction state_action) {
+    NetworkManager *manager = new NetworkManager();
+    std::string msg;
+    msg += "{'x':" + std::to_string(state_action.x);
+    msg += ",'y':" + std::to_string(state_action.y);
+    msg += ",'id':" + std::to_string(this->aruco_id) + "}";
+    char* response = manager->send_tcp(this->host, (char*)msg.c_str(), this->port);
+    return atoi(response);
+}
 

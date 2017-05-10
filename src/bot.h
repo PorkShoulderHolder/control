@@ -38,7 +38,7 @@ public:
     void learn();
     void update_image_for_state(StateAction prev, StateAction s);
     static void match_movement(int, int);
-
+    int train_action(StateAction state_action);
     phys_state state;
     cv::Point target;
     std::vector<cv::Mat> info_images;

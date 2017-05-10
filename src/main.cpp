@@ -207,7 +207,7 @@ void calibrate(int device_index){
 
 void test_network(){
     NetworkManager *manager = new NetworkManager();
-    manager->send_to((char *)"goodvibes1067796.local", (char *)"r:::1", 8888);
+    manager->send_udp((char *) "goodvibes1067796.local", (char *) "r:::1", 8888);
 }
 
 int main(int argc, char** argv )

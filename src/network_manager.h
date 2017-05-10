@@ -13,9 +13,11 @@ using namespace std;
 
 class NetworkManager {
 static int sock;
+static int backend_sock;
 public:
     NetworkManager();
-    bool send_to(char *host, char* msg, int port);
+    bool send_udp(char *host, char *msg, int port);
+    char* send_tcp(char *host, char *msg, int port);
 };
 
 
