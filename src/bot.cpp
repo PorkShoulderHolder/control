@@ -18,7 +18,7 @@ Bot::Bot(const char *host){
     int y_width = 50;
     int action_count = 4;
     const StateActionSpace *sa = new StateActionSpace(x_width, y_width, action_count);
-    this->agent = new Agent(*sa, std::string("device_3_goodvibes1067796.localexp12266"));
+    this->agent = new Agent(*sa, std::string("/Users/sam.royston/PycharmProjects/control/saved_data/device_3_goodvibes1067796.localexp12266"));
     this->max_distance = x_width / 2.0f;
     this->target = cv::Point(5, 10);
     for (int i = 0; i < action_count; ++i) {
@@ -153,25 +153,24 @@ void Bot::learn(){
     cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
     cv::Point2d rx = this->state.rotation;
     StateAction current_state = this->Q_indices(px, rx);
-
-
+//
     if(this->agent->experience_points == 0){
-
-        this->agent->update(current_state, current_state);
+//
+//        this->agent->update(current_state, current_state);
     }
     else{
-
-        this->agent->update(this->agent->last_action, current_state);
+//
+//        this->agent->update(this->agent->last_action, current_state);
         this->load_info_image();
         this->update_image_for_state(current_state, current_state);
     }
-
-    StateAction new_s = this->agent->act(current_state);
+    //StateAction new_s = this->agent->act(current_state);
+    StateAction new_s = this->train_action(current_state);
     std::vector<MOTOR> c;
     std::vector<MOTOR> c1;
     std::vector<MOTOR> c2;
     std::vector<MOTOR> c3;
-
+    std::cout << new_s.action << std::endl;
     switch (new_s.action){
         case 0:
             c.push_back(M_LEFT_OFF);
@@ -261,14 +260,17 @@ void Bot::apply_motor_commands(std::vector<MOTOR> commands) {
 }
 
 
-int Bot::train_action(StateAction state_action) {
+StateAction Bot::train_action(StateAction state_action) {
     NetworkManager *manager = new NetworkManager();
     std::string msg;
-    msg += "{'x':" + std::to_string(state_action.x);
-    msg += ",'y':" + std::to_string(state_action.y);
-    msg += ",'id':" + std::to_string(this->aruco_id) + "}";
+    msg += "{\"x\":" + std::to_string(state_action.x);
+    msg += ",\"y\":" + std::to_string(state_action.y);
+    msg += ",\"id\":" + std::to_string(this->aruco_id) + "}";
     char buffer[1024];
-    char* response = manager->send_tcp(this->host, (char*)msg.c_str(), this->port, buffer);
-    return atoi(response);
+    std::string brain_host = "127.0.0.1";
+    char* response = manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9999, buffer);
+    StateAction s;
+    s.action = atoi(response);
+    return s;
 }
 

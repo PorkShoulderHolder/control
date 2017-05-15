@@ -12,6 +12,8 @@
 #include "src/utils.h"
 #include "src/network_manager.h"
 #include "src/agent.h"
+#include <unistd.h>
+
 
 #endif //CONTROL_TEST_SUITE_H
 
@@ -27,11 +29,21 @@ public:
 
     }
     void test_network(){
-        Bot *bot = new Bot("");
+        Bot *bot = new Bot("asdasdsa");
         StateAction s;
         s.x = 2;
         s.y = 4;
-        bot->train_action(s);
+        int j = 25;
+        StateAction d = bot->train_action(s);
+        int i;
+        for(i=0; i < j; i++){
+            usleep(100000);
+            s.x = rand() % 10;
+            s.y = rand() % 10;
+            bot->train_action(s);
+        }
+        TS_ASSERT_EQUALS(i, j);
+
     }
     void test_agent(){
         srand (static_cast <unsigned> (time(0)));

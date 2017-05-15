@@ -40,6 +40,10 @@ NetworkManager::NetworkManager() {
 }
 
 bool send_to(char *hostname, char *msg, int port, int socket_ptr) {
+
+}
+
+bool NetworkManager::send_udp(char *hostname, char *msg, int port) {
     int serverlen;
     struct sockaddr_in serveraddr;
     struct hostent *server;
@@ -61,24 +65,21 @@ bool send_to(char *hostname, char *msg, int port, int socket_ptr) {
     /* send the message to the server */
     serverlen = sizeof(serveraddr);
 
-    int success = (int)sendto(socket_ptr, msg, strlen(msg), 0,
+    int success = (int)sendto(NetworkManager::sock, msg, strlen(msg), 0,
                               (struct sockaddr *)&serveraddr, (socklen_t)serverlen);
 
     return success >= 0;
-}
-
-bool NetworkManager::send_udp(char *hostname, char *msg, int port) {
-    return send_to(hostname, msg, port, NetworkManager::sock);
 }
 
 char* NetworkManager::send_tcp(char *hostname, char *msg, int port, char* buf) {
     int serverlen;
     struct sockaddr_in serveraddr;
     struct hostent *server;
+    static bool try_once = true;
     /* gethostbyname: get the server's DNS entry */
     server = gethostbyname(hostname);
     if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host as %s\n", hostname);
+        fprintf(stdout,"ERROR, no such host as %s\n", hostname);
         return false;
     }
 
@@ -89,14 +90,19 @@ char* NetworkManager::send_tcp(char *hostname, char *msg, int port, char* buf) {
           (char *)&serveraddr.sin_addr.s_addr, (size_t)server->h_length);
     serveraddr.sin_port = htons(port);
 
-    /* send the message to the server */
-    serverlen = sizeof(serveraddr);
+    if(try_once){
+        if (connect(NetworkManager::backend_sock ,(struct sockaddr *)&serveraddr, sizeof(serveraddr)) < 0)
+            error("ERROR connecting");
+        try_once = false;
+    }
 
-    int success = (int)sendto(NetworkManager::backend_sock, msg, strlen(msg), 0,
-                              (struct sockaddr *)&serveraddr, (socklen_t)serverlen);
+    if (write(NetworkManager::backend_sock, msg, strlen(msg)) < 0)
+        error("ERROR writing to socket");
     bzero(buf, BUFSIZE);
-    ssize_t n = read(NetworkManager::backend_sock, buf, BUFSIZE);
+    if(read(NetworkManager::backend_sock, buf, BUFSIZE) < 0)
+        error("ERROR reading from socket");
 
+    fprintf(stdout,"--- %s\n", buf);
     return buf;
 }
 

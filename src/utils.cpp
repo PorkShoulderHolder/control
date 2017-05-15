@@ -7,7 +7,8 @@
 #include <fstream>
 #include "utils.h"
 #include "state.h"
-#define DEVICE_FILE "configuration_files/domains.txt"
+#define DEVICE_FILE "domains.txt"
+#define CAMERA_PARAMS_FILE "camera_data.xml"
 
 enum PATTERN_TYPE{
     PATTERN_TYPE_ITER,
@@ -61,7 +62,7 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
 
 
 std::vector<char *> Utils::get_device_names_from_file(){
-    std::ifstream infile(DEVICE_FILE);
+    std::ifstream infile("domains.txt");
     std::string line;
     std::vector<char *> out;
     while(infile >> line){
