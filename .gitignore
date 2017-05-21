@@ -10,8 +10,11 @@ CMakeCache.txt
 markertest
 cmake_install.cmake
 data
-*.pyc
 test_suite
 *.local*
 venv
 brain/archive
+control.cbp
+read.py
+*.pyc
+
