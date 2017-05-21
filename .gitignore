@@ -14,3 +14,4 @@ data
 test_suite
 *.local*
 venv
+brain/archive
