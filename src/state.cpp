@@ -72,7 +72,6 @@ LocationRotationMap State::update_markers(cv::Mat image){
 
 void init_state(){
     std::vector<char *> hosts = Utils::get_device_names_from_file();
-
     for (char *host : hosts){
 
         Bot *b  = new Bot(host);
@@ -115,10 +114,12 @@ void State::update(cv::Mat image) {
     for( Bot *b : State::devices ){
         b->incr_command_queue();
     }
+
     if(State::task_queue.size() > 0){
         State::task_queue.front()();
         State::task_queue.pop_front();
     }
+
 }
 
 int State::hist_length = 20;

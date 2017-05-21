@@ -153,31 +153,24 @@ void draw_bots_data(){
 
 void calibrate(int device_index){
     
-    std::cout << "here " << std::endl;
     cv::VideoCapture input_stream(device_index);
 
-    std::cout << "here " << std::endl;
     if (!input_stream.isOpened()) {
         std::cout << "Unable to read stream from specified device." << std::endl;
         return;
     }
-    std::cout << "here " << std::endl;
     cv::Mat current_image;
-    std::cout << "here " << std::endl;
     int i = 1;
     time_t start, finish;
     time(&start);
     std::string fps_str = "0 fps";
     int sample_pd = 80;
     cv::Point text_loc(20, 20);
-    cv::namedWindow(MAIN_WINDOW, cv::WINDOW_NORMAL );
-    cv::namedWindow(INFO_WINDOW, cv::WINDOW_NORMAL );
+    cv::namedWindow(MAIN_WINDOW, cv::WINDOW_NORMAL);
+    cv::namedWindow(INFO_WINDOW, cv::WINDOW_NORMAL);
 
     init_state();
-
-
     while(1){
-
         if(i % sample_pd == 0){
             time(&finish);
             double seconds = difftime (finish, start);
@@ -197,8 +190,8 @@ void calibrate(int device_index){
 
         cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow(MAIN_WINDOW, final_draw);
-        cv::imshow(INFO_WINDOW, State::info_image);
-        draw_bots_data();
+//        cv::imshow(INFO_WINDOW, State::info_image);
+//        draw_bots_data();
 
         if(waitKey(30) >= 0) break;
         i++;

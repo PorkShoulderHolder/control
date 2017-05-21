@@ -45,16 +45,29 @@ class Policy(nn.Module):
         self.action_count = action_count
         self.input_layer = nn.Linear(2, 32)
         self.output_layer = nn.Linear(32, self.bot_count * self.action_count)
+        self.softmax = nn.Softmax()
 
-    def forward(self, x, i):
+    def forward(self, x):
+        ii = len(x)
         x = functional.relu(self.input_layer(x))
         x = self.output_layer(x)
+        x = x.view(ii * self.bot_count, self.action_count)
+        x = self.softmax(x)
+        x = x.view(ii, self.bot_count, self.action_count)
         return x
+
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0)
 
 
 class Learner(object):
     def __init__(self):
         self.steps_done = 0
+        self.devices = 5
+        self.actions = 4
         try:
             self.policy = torch.load(MODEL_FN)
             print("loaded saved model")
@@ -71,36 +84,56 @@ class Learner(object):
         self.distance = 0
         self.durations = []
 
-    def select_action(self, state):
+    def select_action(self, state, i):
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * \
             math.exp(-1. * self.steps_done / EPS_DECAY)
         self.steps_done += 1
         if sample > eps_threshold:
-            return self.policy(autograd.Variable(state, volatile=True))
+            print("runnin")
+            output = self.policy(autograd.Variable(state, volatile=True))
+            output = output.data.numpy()
+            output = np.argmax(output[0][i])
+            print(output)
+            return output
         else:
-            return torch.LongTensor([[random.randrange(self.policy.action_count)]])
+            output = random.randrange(self.policy.action_count)
+            print(output)
+            return output
 
     def optimize_model(self):
         if len(self.memory) < BATCH_SIZE:
             return
         transitions = self.memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
+        # batch.state = [self.clean(s) for s in batch.state]
+        # batch.next_state = [self.clean(s) for s in batch.next_state]
         non_final_mask = torch.ByteTensor(tuple(map(lambda s: s is not None, batch.next_state)))
-        f_batch = torch.cat([s for s in batch.next_state if s is not None])
+        non_null_actions = torch.ByteTensor(tuple(map(lambda s: s is not None, batch.action))).repeat(2, 1).transpose(1, 0)
+        f_batch = torch.cat([self.clean(s) for s in batch.next_state if s is not None])
         non_final_next_states = autograd.Variable(f_batch, volatile=True)
-        state_batch = autograd.Variable(torch.cat(batch.state))
-        action_batch = autograd.Variable(torch.cat(batch.action))
-        reward_batch = autograd.Variable(torch.cat(batch.reward))
+        device_array = autograd.Variable(torch.cat([torch.LongTensor([[s["id"]]]) for s in batch.state if s is not None]))
+        state_array = [self.clean(s) for s in batch.state]
 
-        state_action_values = self.policy(state_batch).gather(1, action_batch)
+        state_batch = autograd.Variable(torch.cat(state_array))
+        action_batch = autograd.Variable(torch.cat([torch.LongTensor([[int(a)]]) for a in batch.action if a is not None]))
+
+        reward_batch = autograd.Variable(torch.cat([torch.FloatTensor([[float(a)]]) for a in batch.reward]))
+
+        s = state_batch[non_null_actions].view(len(state_batch[non_null_actions]) / 2, 2)
+        devices_base = autograd.Variable(self.policy.bot_count * self.policy.action_count * torch.LongTensor(xrange(0, len(action_batch))))
+
+        device_indices = devices_base + (device_array[non_null_actions[:, 0]] * self.policy.action_count) + action_batch.squeeze()
+        op = self.policy(s)
+        op = op.view(len(op) * self.policy.bot_count * self.policy.action_count)
+        state_action_values = op[device_indices.data.squeeze()]
         next_state_values = autograd.Variable(torch.zeros(BATCH_SIZE))
         next_state_values[non_final_mask] = self.policy(non_final_next_states).max(1)[0]
         next_state_values.volatile = False
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-    
+
         # Compute Huber loss
-        loss = functional.smooth_l1_loss(state_action_values, expected_state_action_values)
+        loss = functional.smooth_l1_loss(state_action_values, expected_state_action_values[non_null_actions[:, 0]])
     
         # Optimize the model
         self.optimizer.zero_grad()
@@ -109,15 +142,21 @@ class Learner(object):
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
+    @staticmethod
+    def clean(data):
+        return torch.Tensor([[data["x"], data["y"]]])
+
     def iterate(self, new_state, completed=False):
+        print(new_state)
         if self.state is None:
             self.state = new_state
-            self.distance = np.linalg.norm(self.state)
-            return self.select_action(self.state)
+            vec_state = self.clean(self.state)
+            self.distance = np.linalg.norm(vec_state)
+            return self.select_action(vec_state, self.state["id"])
 
-        new_action = self.select_action(new_state)
-        self.reward = np.linalg.norm(new_state)
-
+        vec_state = self.clean(new_state)
+        new_action = self.select_action(vec_state, new_state["id"])
+        self.reward = np.linalg.norm(vec_state.numpy())
         self.memory.push(self.state, self.last_action, new_state, self.reward)
 
         self.last_action = new_action
