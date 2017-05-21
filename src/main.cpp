@@ -15,6 +15,8 @@
 
 
 #define DEBUG false
+#define CONTROL 0
+#define WATCH 1
 
 using namespace cv;
 using namespace std;
@@ -46,7 +48,11 @@ void exiting(int i){
         b->apply_motor_commands(off);
         delete b;
     }
-    printf("%c[2K", 27);
+    NetworkManager *manager = new NetworkManager();
+    std::string msg = "{\"completed\":1}";
+    char buffer[1024];
+    std::string brain_host = "127.0.0.1";
+    manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9999, buffer);
     std::cout << "\n --- bye :^) --- \n" << std::endl;
     std::exit(0);
 }
@@ -151,7 +157,7 @@ void draw_bots_data(){
 
 }
 
-void calibrate(int device_index){
+void main_loop(int device_index, int mode){
     
     cv::VideoCapture input_stream(device_index);
 
@@ -179,8 +185,12 @@ void calibrate(int device_index){
             time(&start);
         }
         input_stream >> current_image;
+        if(mode == CONTROL){
+            State::update(current_image);
+        }
+        else if(mode == WATCH){
 
-        State::update(current_image);
+        }
         if(DEBUG){
             loop_outer_log();
         }
@@ -190,8 +200,7 @@ void calibrate(int device_index){
 
         cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow(MAIN_WINDOW, final_draw);
-//        cv::imshow(INFO_WINDOW, State::info_image);
-//        draw_bots_data();
+
 
         if(waitKey(30) >= 0) break;
         i++;
@@ -242,7 +251,15 @@ int main(int argc, char** argv )
         if(argc > 2){
             device_index = atoi(argv[2]);
         }
-        calibrate(device_index);
+        main_loop(device_index, CONTROL);
+    }
+    else if(argc > 1 && strcmp(argv[1], "watch") == 0) {
+        system("gtimeout 2 ./mdns-mod -B");
+        int device_index = 0;
+        if (argc > 2) {
+            device_index = atoi(argv[2]);
+        }
+        main_loop(device_index, CONTROL);
     }
     else{
         calibrate_camera_main(argc, argv);

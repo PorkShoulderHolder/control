@@ -17,8 +17,12 @@ class Server(SocketServer.BaseRequestHandler):
                 break
             data = data.strip()
             data = json.loads(data)
-            action = learner.iterate(data)
-            self.request.sendall(str(action))
+            if "completed" in data:
+                learner.iterate(data, completed=True)
+                self.request.sendall("ok")
+            else:
+                action = learner.iterate(data)
+                self.request.sendall(str(action))
 
 
 if __name__ == "__main__":

@@ -33,11 +33,11 @@ public:
         StateAction s;
         s.x = 2;
         s.y = 4;
-        int j = 25;
+        int j = 500;
         StateAction d = bot->train_action(s);
         int i;
         for(i=0; i < j; i++){
-            usleep(100000);
+            usleep(10000);
             s.x = rand() % 10;
             s.y = rand() % 10;
             bot->train_action(s);

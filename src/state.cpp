@@ -53,6 +53,7 @@ LocationRotationMap State::update_markers(cv::Mat image){
             marker_rotations.insert(rot_kv);
         }
         else{
+            std::cout << "t " << std::endl;
             target = location;
         }
     }
@@ -60,7 +61,7 @@ LocationRotationMap State::update_markers(cv::Mat image){
     for( Bot *b : State::devices ){
         b->state.location = marker_locations[b->aruco_id];
         b->state.rotation = cv::Vec2d(marker_rotations[b->aruco_id][0], marker_rotations[b->aruco_id][1]);
-        b->target = cv::Point(target[0], target[1]);
+        b->target = cv::Point2d(target[0], target[1]);
     }
 
     if(DISPLAY_ON){
@@ -121,6 +122,7 @@ void State::update(cv::Mat image) {
     }
 
 }
+
 
 int State::hist_length = 20;
 std::vector< Bot* > State::devices;

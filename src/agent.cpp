@@ -205,7 +205,7 @@ Agent::Agent(const StateActionSpace &O, std::function<float(StateAction, StateAc
 }
 
 Agent::Agent(const StateActionSpace &O) : Q(O) {
-    int resolution = 50;
+    int resolution = 500;
     int actions = 4;
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;

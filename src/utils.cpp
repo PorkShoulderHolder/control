@@ -47,13 +47,19 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
     std::vector<cv::Point2d> rotns;
     int i = 0;
     for( cv::Vec3d p3  : locations ){
-        cv::Point2d p(4.0f * p3[0] + 400, 4.0f * p3[1] + 400);
+        cv::Point2d p(8.0f * p3[0] + 800, 8.0f * p3[1] + 800);
         cv::Point2d rot = Utils::getRotationFromQuad(quads[i]);
         rotns.push_back(rot);
         cv::Point2d r(p.x + 20 * rot.x, p.y + 20 * rot.y);
         cv::circle(State::display_image, p, 10, cv::Scalar(244,244,0), 5);
         cv::line(State::display_image, p, r, cv::Scalar(0,244,244), 5);
         i++;
+    }
+
+    for( Bot *b  : State::devices ){
+        cv::Point2d g(8.0f * b->target.x + 800, 8.0f * b->target.y + 800);
+
+        cv::circle(State::display_image, g, 20, cv::Scalar(244, 0, 0), 8);
     }
 
     LocationRotationVec p(locations, rotns);

@@ -14,13 +14,13 @@ Bot::Bot(const char *host){
     this->port = 8888;
     this->aruco_id = NULL;
     this->host = (char *)host;
-    int x_width = 50;
-    int y_width = 50;
+    int x_width = 500;
+    int y_width = 500;
     int action_count = 4;
     const StateActionSpace *sa = new StateActionSpace(x_width, y_width, action_count);
-    this->agent = new Agent(*sa, std::string("/Users/sam.royston/PycharmProjects/control/saved_data/device_3_goodvibes1067796.localexp12266"));
+    this->agent = new Agent(*sa);
     this->max_distance = x_width / 2.0f;
-    this->target = cv::Point(5, 10);
+    this->target = cv::Point2d(250, 250);
     for (int i = 0; i < action_count; ++i) {
         this->info_images.push_back(cv::Mat::zeros(sa->count_x, sa->count_y, CV_32FC3));
     }
@@ -75,28 +75,24 @@ void Bot::update_image_for_state(StateAction ps, StateAction s){
 
 StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     StateAction current_state;
-    float dx = location.x - this->target.x;
-    float dy = location.y - this->target.y;
-    float norm = cv::norm(cv::Point2f(dx, dy));
-    float norm_r = cv::norm(rotation);
+    std::cout << " ____ " << location << " " << this->target << std::endl;
+    double dx = location.x - this->target.x;
+    double dy = location.y - this->target.y;
+    double norm = cv::norm(cv::Point2d(dx, dy));
+    double norm_r = cv::norm(rotation);
     dx /= norm;
     dy /= norm;
-    float rot =   atan2(rotation.x / norm_r, rotation.y / norm_r) - atan2(dx, dy);
-    float px = dx * cos(rot) - dy * sin(rot);
-    float py = dx * sin(rot) + dy * cos(rot);
+    double rot =   atan2(rotation.x / norm_r, rotation.y / norm_r) - atan2(dx, dy);
+    double px = dx * cos(rot) - dy * sin(rot);
+    double py = dx * sin(rot) + dy * cos(rot);
     px *= 2 * norm;
     py *= 2 * norm;
-    px += this->max_distance;
-    py += this->max_distance;
-    px = min(px, (float)this->agent->Q.count_x - 1);
-    px = max(px, 0.0f);
-    py = min(py, (float)this->agent->Q.count_y - 1);
-    py = max(py, 0.0f);
     if(isnan(px)) px = 0.0f;
     if(isnan(py)) py = 0.0f;
-    current_state.x = (int)(px); // + this->max_distance / 2);
-    current_state.y = (int)(py);//+ this->max_distance / 2);
-    current_state.action = 0;//+ this->max_distance / 2);
+    current_state.x = (float)px;
+    current_state.y = (float)py;
+    current_state.action = 0;
+
     return current_state;
 };
 
@@ -160,17 +156,20 @@ void Bot::learn(){
     }
     else{
 //
-//        this->agent->update(this->agent->last_action, current_state);
         this->load_info_image();
         this->update_image_for_state(current_state, current_state);
     }
-    //StateAction new_s = this->agent->act(current_state);
+    if(current_state.x == 0 && current_state.y == 0)
+        return;
     StateAction new_s = this->train_action(current_state);
     std::vector<MOTOR> c;
     std::vector<MOTOR> c1;
     std::vector<MOTOR> c2;
     std::vector<MOTOR> c3;
-    std::cout << new_s.action << std::endl;
+    double cost = cv::norm(cv::Point2d(current_state.y, current_state.x));
+    std::cout << new_s.action << " (" << current_state.x  << ", ";
+    std::cout << current_state.y << ") -> ";
+    std::cout << cost << std::endl;
     switch (new_s.action){
         case 0:
             c.push_back(M_LEFT_OFF);
@@ -269,8 +268,7 @@ StateAction Bot::train_action(StateAction state_action) {
     char buffer[1024];
     std::string brain_host = "127.0.0.1";
     char* response = manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9999, buffer);
-    StateAction s;
-    s.action = atoi(response);
-    return s;
+    state_action.action = atoi(response);
+    return state_action;
 }
 

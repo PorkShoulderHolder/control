@@ -102,7 +102,6 @@ char* NetworkManager::send_tcp(char *hostname, char *msg, int port, char* buf) {
     if(read(NetworkManager::backend_sock, buf, BUFSIZE) < 0)
         error("ERROR reading from socket");
 
-    fprintf(stdout,"--- %s\n", buf);
     return buf;
 }
 

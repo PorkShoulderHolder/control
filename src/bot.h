@@ -40,7 +40,7 @@ public:
     static void match_movement(int, int);
     StateAction train_action(StateAction state_action);
     phys_state state;
-    cv::Point target;
+    cv::Point2d target;
     std::vector<cv::Mat> info_images;
     float max_distance;
     char *host;

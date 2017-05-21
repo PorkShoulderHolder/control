@@ -16,8 +16,8 @@
 #define CONTROL_AGENT_H
 
 struct StateAction{
-    int y;
-    int x;
+    float y;
+    float x;
     int action;
     float value;
     int visits;
