@@ -57,6 +57,10 @@ void exiting(int i){
     std::exit(0);
 }
 
+void handle_keypress(int key){
+    std::cout << key << std::endl;
+}
+
 void generate_markers(int count){
     cv::Mat markerImage; 
     cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_1000);
@@ -81,80 +85,6 @@ void generate_markers(int count){
     cv::imshow("d", display_image);
     waitKey(0);
   
-}
-
-void loop_outer_log(){
-    for(int j = 0; j < State::hist.size(); j++){
-        t_frame t = State::hist[j];
-        for ( auto local_it = t.locations.begin(); local_it!= t.locations.end(); ++local_it ) {
-            std::cout << " " << local_it->first << ":" << local_it->second;
-        }
-        std::cout << "-----------" << std::endl;
-
-    }
-    std::cout << "=========" << std::endl;
-}
-std::string type2str(int type) {
-    std::string r;
-
-    uchar depth = type & CV_MAT_DEPTH_MASK;
-    uchar chans = 1 + (type >> CV_CN_SHIFT);
-
-    switch ( depth ) {
-        case CV_8U:  r = "8U"; break;
-        case CV_8S:  r = "8S"; break;
-        case CV_16U: r = "16U"; break;
-        case CV_16S: r = "16S"; break;
-        case CV_32S: r = "32S"; break;
-        case CV_32F: r = "32F"; break;
-        case CV_64F: r = "64F"; break;
-        default:     r = "User"; break;
-    }
-
-    r += "C";
-    r += (chans+'0');
-
-    return r;
-}
-
-void draw_bots_data(){
-    int i = 0;
-    int width = 200;
-    int buffer = 10;
-    int items_per_row = 5;
-    int frame_widthx = 22;
-    int frame_widthy = 3;
-    cv::Mat display_image((int)(2 + (State::devices.size() / items_per_row)) * (width + 2 * buffer) + (2 * frame_widthy),
-                          items_per_row * (width + buffer) + 2 * frame_widthx,
-                          CV_32FC3);
-
-    for(Bot *b: State::devices){
-
-        int x = (i % items_per_row) * width + buffer;
-        int y = (int)(i / items_per_row) * width + buffer * 2;
-        std::string s = std::to_string(i);
-        cv::Point p;
-        p.x = x + frame_widthx;
-        p.y = y + frame_widthy;
-        cv::Rect r = cv::Rect(x + 2 * buffer, y + 2 * buffer, width, width);
-
-        double sum = 0.0;
-        int v = 2;
-        for(int k = 0; k < b->info_images.size(); k++){
-            cv::Mat m = b->info_images[k];
-            cv::Rect sub_r(r.x + (k % v) * (width / 2), r.y + (k / v) * (width / 2), width / 2, width / 2);
-            cv::Mat ma;
-            double min, max;
-            m.copyTo(ma);
-            cv::resize(ma, ma, sub_r.size());
-            ma = ma.t();
-            ma.copyTo(display_image(sub_r));
-        }
-        cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1);
-        i++;
-    }
-    State::info_image = display_image;
-
 }
 
 void init_application(){
@@ -198,12 +128,10 @@ void main_loop(int device_index, int mode){
         }
         else if(mode == WATCH){
             int key = waitKey(10);
-            handle_command();
+            if(key >= 0){
+                handle_keypress(key);
+            }
         }
-        if(DEBUG){
-            loop_outer_log();
-        }
-
 
         cv::Mat final_draw;
         cv::resize(State::display_image, final_draw, Size(612, 384));
@@ -267,7 +195,7 @@ int main(int argc, char** argv )
         if (argc > 2) {
             device_index = atoi(argv[2]);
         }
-        main_loop(device_index, CONTROL);
+        main_loop(device_index, WATCH);
     }
     else{
         calibrate_camera_main(argc, argv);

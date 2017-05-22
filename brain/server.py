@@ -5,15 +5,23 @@ from constants import *
 from q_network import learner
 import signal
 import sys
-
+import datetime
 session_training_data = []
 
 
 def on_exit(sig, frame):
-    with open("data.json", "w+") as f:
-        print("saving data")
+    with open("{0}/training_data_{1}count.json".format(DATA_DIR, len(session_training_data)), "w+") as f:
+        print("saving data, {0}".format(len(session_training_data)))
         json.dump(session_training_data, f)
     sys.exit(0)
+
+
+def route_state(data, engine_type):
+    if engine_type == FORWARD_NN:
+        action = learner.iterate(data)
+    elif engine_type == SVM:
+        pass
+
 
 class Server(SocketServer.BaseRequestHandler):
     """
@@ -27,7 +35,9 @@ class Server(SocketServer.BaseRequestHandler):
                 break
             data = data.strip()
             data = json.loads(data)
-            session_training_data.append(data)
+            if "training" in data and data["training"] == 1:
+                session_training_data.append(data)
+                self.request.sendall("ok")
             if "completed" in data:
                 learner.iterate(data, completed=True)
                 self.request.sendall("ok")
