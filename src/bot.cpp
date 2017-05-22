@@ -152,8 +152,7 @@ void grid_based_learning(Bot *bot){
     }
 
     StateAction new_s = bot->agent->act(current_state);
-    std::vector<MOTOR> c = comm
-
+    std::vector<MOTOR> c = motor_instructions((COMMAND) new_s.action);
 }
 
 void Bot::learn(){
