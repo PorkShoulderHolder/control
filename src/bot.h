@@ -16,6 +16,13 @@ enum MOTOR{
     M_LEFT_ON = 3
 };
 
+enum COMMAND{
+    C_BOTH_OFF = 0,
+    C_LEFT_OFF_RIGHT_ON = 1,
+    C_LEFT_ON_RIGHT_OFF = 2,
+    C_BOTH_ON = 3
+};
+
 struct phys_state{
     cv::Vec3d location;
     cv::Vec3d velocity;
@@ -33,6 +40,7 @@ public:
     void set_color(std::vector<StateAction>);
     void set_color(std::vector<StateAction>, cv::Vec3f);
     void apply_motor_commands( std::vector<MOTOR> );
+    void record_motor_commands( std::vector<MOTOR> );
     void set_target_location( cv::Point );
     void incr_command_queue();
     void learn();
@@ -40,6 +48,7 @@ public:
     static void match_movement(int, int);
     StateAction train_action(StateAction state_action);
     phys_state state;
+    StateAction current_state;
     cv::Point2d target;
     std::vector<cv::Mat> info_images;
     float max_distance;
@@ -48,11 +57,15 @@ public:
     bool on_off_inverted;
     bool lr_inverted;
     int aruco_id;
+    bool training;
+    int action_memory;
     Agent *agent;
 private:
     float left_motor_on;
     int port;
     float right_motor_on;
+    std::deque<StateAction> past_state_actions;
+
 };
 
 

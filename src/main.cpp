@@ -157,51 +157,59 @@ void draw_bots_data(){
 
 }
 
+void init_application(){
+
+    cv::namedWindow(MAIN_WINDOW, cv::WINDOW_NORMAL);
+    cv::namedWindow(INFO_WINDOW, cv::WINDOW_NORMAL);
+}
+
+std::string update_fps(int i, time_t start, time_t finish){
+    static std::string fps_str;
+    static int sample_pd = 80;
+    if(i % sample_pd == 0){
+        time(&finish);
+        double seconds = difftime (finish, start);
+        double fps = sample_pd / seconds;
+        fps_str = std::string(to_string(fps)) + " fps";
+        time(&start);
+    }
+    return fps_str;
+}
+
 void main_loop(int device_index, int mode){
-    
+    cv::Point text_loc(20, 20);
+    cv::Mat current_image;
+    int i = 1;
+    time_t start, finish;
+    std::string fps_str = "0 fps";
+    time(&start);
     cv::VideoCapture input_stream(device_index);
 
     if (!input_stream.isOpened()) {
         std::cout << "Unable to read stream from specified device." << std::endl;
         return;
     }
-    cv::Mat current_image;
-    int i = 1;
-    time_t start, finish;
-    time(&start);
-    std::string fps_str = "0 fps";
-    int sample_pd = 80;
-    cv::Point text_loc(20, 20);
-    cv::namedWindow(MAIN_WINDOW, cv::WINDOW_NORMAL);
-    cv::namedWindow(INFO_WINDOW, cv::WINDOW_NORMAL);
-
+    init_application();
     init_state();
     while(1){
-        if(i % sample_pd == 0){
-            time(&finish);
-            double seconds = difftime (finish, start);
-            double fps = sample_pd / seconds;
-            fps_str = std::string(to_string(fps)) + " fps";
-            time(&start);
-        }
         input_stream >> current_image;
         if(mode == CONTROL){
             State::update(current_image);
         }
         else if(mode == WATCH){
-
+            int key = waitKey(10);
+            handle_command();
         }
         if(DEBUG){
             loop_outer_log();
         }
 
+
         cv::Mat final_draw;
         cv::resize(State::display_image, final_draw, Size(612, 384));
-
+        fps_str = update_fps(i, start, finish);
         cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow(MAIN_WINDOW, final_draw);
-
-
         if(waitKey(30) >= 0) break;
         i++;
     }
