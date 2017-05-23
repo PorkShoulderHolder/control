@@ -3,3 +3,9 @@
 //
 
 #include "ui.h"
+
+
+void setup_ui(Display *display){
+
+
+}

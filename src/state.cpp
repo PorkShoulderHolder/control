@@ -53,7 +53,6 @@ LocationRotationMap State::update_markers(cv::Mat image){
             marker_rotations.insert(rot_kv);
         }
         else{
-            std::cout << "t " << std::endl;
             target = location;
         }
     }
@@ -113,6 +112,13 @@ void State::update(cv::Mat image) {
 
     for( Bot *b : State::devices ){
         b->incr_command_queue();
+        if(b->training){
+            State::info_image = cv::Mat::zeros(200,200, CV_8UC3);
+            cv::Point2d p(2 * (-1 * b->current_state.x + 50), 2 * (-1 * b->current_state.y + 50));
+            cv::Point2d r(100, 100);
+            cv::circle(State::info_image, p, 10, cv::Scalar(244,244,0), 5);
+            cv::line(State::info_image, p, r, cv::Scalar(0,244,244), 5);
+        }
     }
 
 
@@ -134,7 +140,7 @@ std::deque< frame_tasks > State::task_queue;
 cv::Mat State::current_image;
 cv::Mat State::difference_image;
 cv::Mat State::display_image;
-cv::Mat State::info_image = cv::Mat::zeros(10,10, CV_32F);
+cv::Mat State::info_image = cv::Mat::zeros(200,200, CV_8UC3);
 
 std::set< int > State::marker_ids;
 cv::aruco::Dictionary State::marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);

@@ -126,7 +126,7 @@ void Bot::learn(){
 //
     if(this->agent->experience_points == 0){
 //
-//        this->agent->update(current_state, current_state);
+    //    this->agent->update(current_state, current_state);
     }
     else{
 //
@@ -138,19 +138,16 @@ void Bot::learn(){
     StateAction new_s = this->train_action(this->current_state);
 
     double cost = cv::norm(cv::Point2d(this->current_state.y, this->current_state.x));
-    std::cout << new_s.action << " (" << this->current_state.x  << ", ";
-    std::cout << this->current_state.y << ") -> ";
-    std::cout << cost << std::endl;
 
     std::vector<MOTOR> c = motor_instructions((COMMAND) new_s.action);
     this->apply_motor_commands(c);
 }
 
 void Bot::incr_command_queue() {
+    cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
+    cv::Point2d rx = this->state.rotation;
+    this->current_state = this->Q_indices(px, rx);
     if(this->command_queue.size() > 0){
-        cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
-        cv::Point2d rx = this->state.rotation;
-        this->current_state = this->Q_indices(px, rx);
         this->apply_motor_commands(this->command_queue.front());
         if(this->training){
             COMMAND c = command_code(this->command_queue.front());

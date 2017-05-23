@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp> 
 #include <string>
+#include "ui.h"
 #include "camera_calibration.h"
 #include "network_manager.h"
 #include "bot.h"
@@ -12,7 +13,6 @@
 #include <string>
 #include <cstdlib>
 #include <csignal>
-#include <X11/Xlib.h>
 
 
 
@@ -21,9 +21,11 @@
 #define WATCH 1
 #define RIGHT_ARROW_KEY 63235
 #define LEFT_ARROW_KEY 63234
+#define TOP_ARROW_KEY 63232
 
 using namespace cv;
 using namespace std;
+
 
 std::string exec(const char* cmd) {
     char buffer[128];
@@ -61,21 +63,29 @@ void exiting(int i){
     std::exit(0);
 }
 
-void handle_keypress(int key){
+void handle_event(int key){
+
+
     Bot *bot;
     if(State::devices.size() > 0) {
-        bot = State::devices[0];
+        bot = State::devices.back();
         bot->training = true;
     }else {
         return;
     }
     switch(key) {
+
         case RIGHT_ARROW_KEY:{
             if (bot->command_queue.size() == 0) {
                 std::vector<MOTOR> c = motor_instructions(C_LEFT_OFF_RIGHT_ON);
                 bot->command_queue.push_front(c);
+                bot->command_queue.push_front(c);
             }
-            else {
+            else if (bot->command_queue.size() >= 2){
+                bot->command_queue[0][1] = M_RIGHT_ON;
+                bot->command_queue[1][1] = M_RIGHT_ON;
+            }
+            else{
                 bot->command_queue[0][1] = M_RIGHT_ON;
             }
             break;
@@ -84,12 +94,32 @@ void handle_keypress(int key){
             if (bot->command_queue.size() == 0) {
                 std::vector<MOTOR> c = motor_instructions(C_LEFT_ON_RIGHT_OFF);
                 bot->command_queue.push_front(c);
+                bot->command_queue.push_front(c);
             }
-            else {
+            else if (bot->command_queue.size() >= 2){
                 bot->command_queue[0][0] = M_LEFT_ON;
-            };
+                bot->command_queue[1][0] = M_LEFT_ON;
+            }
+            else{
+                bot->command_queue[0][0] = M_LEFT_ON;
+            }
             break;
-        };
+        }
+        case TOP_ARROW_KEY:{
+            std::vector<MOTOR> c = motor_instructions(C_BOTH_ON);
+            if (bot->command_queue.size() == 0) {
+                bot->command_queue.push_front(c);
+                bot->command_queue.push_front(c);
+            }
+            else if (bot->command_queue.size() >= 2){
+                bot->command_queue[0] = c;
+                bot->command_queue[1] = c;
+            }
+            else{
+                bot->command_queue[0] = c;
+            }
+            break;
+        }
         default:
             break;
     }
@@ -156,29 +186,28 @@ void main_loop(int device_index, int mode){
     }
     init_application();
     init_state();
+    Window window;
+
+    /* event loop */
     while(1){
         input_stream >> current_image;
         if(mode == CONTROL){
             State::update(current_image);
         }
         else if(mode == WATCH){
-            int k1 = waitKey(10);
-            int k2 = waitKey(10);
-            if(k2 >= 0){
-                handle_keypress(k2);
-            }
-            if(k2 != k1 && k1 >= 0){
-                handle_keypress(k1);
-            }
-            else{
-                for(Bot *b : State::devices){
-                    if(b->command_queue.size() == 0){
-                        std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
-                        b->command_queue.push_front(c);
-                    }
-                }
+            int k1 = waitKey(5);
+            int k2 = waitKey(5);
+            if(k1 >= 0)
+                handle_event(k1);
+            if(k2 != k1 && k2 >= 0)
+                handle_event(k2);
+            if((k1 >= 0 || k2 >= 0) && State::devices.size() > 0){
+                std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
+                State::devices.back()->command_queue.push_back(c);
+                State::devices.back()->command_queue.push_back(c);
             }
             State::update(current_image);
+
         }
 
         cv::Mat final_draw;
@@ -186,6 +215,8 @@ void main_loop(int device_index, int mode){
         fps_str = update_fps(i);
         cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow(MAIN_WINDOW, final_draw);
+        cv::imshow(INFO_WINDOW, State::info_image);
+        if(i == -1) break;
         i++;
     }
 }

@@ -7,7 +7,7 @@
 
 #define INFO_WINDOW "Info"
 #define MAIN_WINDOW "Display"
-#define TARGET_MARKER 33
+#define TARGET_MARKER 30
 
 #define DISPLAY_ON true
 #define MAX_TASK_DEQUE_SIZE 1000
