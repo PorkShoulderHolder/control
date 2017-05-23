@@ -12,11 +12,15 @@
 #include <string>
 #include <cstdlib>
 #include <csignal>
+#include <X11/Xlib.h>
+
 
 
 #define DEBUG false
 #define CONTROL 0
 #define WATCH 1
+#define RIGHT_ARROW_KEY 63235
+#define LEFT_ARROW_KEY 63234
 
 using namespace cv;
 using namespace std;
@@ -58,7 +62,37 @@ void exiting(int i){
 }
 
 void handle_keypress(int key){
-    std::cout << key << std::endl;
+    Bot *bot;
+    if(State::devices.size() > 0) {
+        bot = State::devices[0];
+        bot->training = true;
+    }else {
+        return;
+    }
+    switch(key) {
+        case RIGHT_ARROW_KEY:{
+            if (bot->command_queue.size() == 0) {
+                std::vector<MOTOR> c = motor_instructions(C_LEFT_OFF_RIGHT_ON);
+                bot->command_queue.push_front(c);
+            }
+            else {
+                bot->command_queue[0][1] = M_RIGHT_ON;
+            }
+            break;
+        }
+        case LEFT_ARROW_KEY:{
+            if (bot->command_queue.size() == 0) {
+                std::vector<MOTOR> c = motor_instructions(C_LEFT_ON_RIGHT_OFF);
+                bot->command_queue.push_front(c);
+            }
+            else {
+                bot->command_queue[0][0] = M_LEFT_ON;
+            };
+            break;
+        };
+        default:
+            break;
+    }
 }
 
 void generate_markers(int count){
@@ -83,8 +117,6 @@ void generate_markers(int count){
       cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1); 
     }
     cv::imshow("d", display_image);
-    waitKey(0);
-  
 }
 
 void init_application(){
@@ -93,9 +125,14 @@ void init_application(){
     cv::namedWindow(INFO_WINDOW, cv::WINDOW_NORMAL);
 }
 
-std::string update_fps(int i, time_t start, time_t finish){
+std::string update_fps(int i){
     static std::string fps_str;
-    static int sample_pd = 80;
+    int sample_pd = 80;
+    static time_t start;
+    static time_t finish;
+    if (i == 1){
+        time(&start);
+    }
     if(i % sample_pd == 0){
         time(&finish);
         double seconds = difftime (finish, start);
@@ -110,9 +147,7 @@ void main_loop(int device_index, int mode){
     cv::Point text_loc(20, 20);
     cv::Mat current_image;
     int i = 1;
-    time_t start, finish;
     std::string fps_str = "0 fps";
-    time(&start);
     cv::VideoCapture input_stream(device_index);
 
     if (!input_stream.isOpened()) {
@@ -127,18 +162,30 @@ void main_loop(int device_index, int mode){
             State::update(current_image);
         }
         else if(mode == WATCH){
-            int key = waitKey(10);
-            if(key >= 0){
-                handle_keypress(key);
+            int k1 = waitKey(10);
+            int k2 = waitKey(10);
+            if(k2 >= 0){
+                handle_keypress(k2);
             }
+            if(k2 != k1 && k1 >= 0){
+                handle_keypress(k1);
+            }
+            else{
+                for(Bot *b : State::devices){
+                    if(b->command_queue.size() == 0){
+                        std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
+                        b->command_queue.push_front(c);
+                    }
+                }
+            }
+            State::update(current_image);
         }
 
         cv::Mat final_draw;
         cv::resize(State::display_image, final_draw, Size(612, 384));
-        fps_str = update_fps(i, start, finish);
+        fps_str = update_fps(i);
         cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow(MAIN_WINDOW, final_draw);
-        if(waitKey(30) >= 0) break;
         i++;
     }
 }

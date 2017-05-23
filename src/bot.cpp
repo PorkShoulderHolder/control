@@ -10,41 +10,6 @@
 
 const char *M_COMMAND_STR[4] = { "r:::0", "l:::0", "r:::1", "l:::1"};
 
-COMMAND command_code(std::vector<MOTOR> command){
-    if(command[0] == M_LEFT_OFF && command[1] == M_RIGHT_OFF)
-        return C_BOTH_OFF;
-    if(command[0] == M_LEFT_OFF && command[1] == M_RIGHT_ON)
-        return C_LEFT_OFF_RIGHT_ON;
-    if(command[0] == M_LEFT_ON && command[1] == M_RIGHT_OFF)
-        return C_LEFT_ON_RIGHT_OFF;
-    if(command[0] == M_LEFT_OFF && command[1] == M_RIGHT_OFF)
-        return C_BOTH_ON;
-}
-
-std::vector<MOTOR> motor_instructions(COMMAND command_type){
-    std::vector<MOTOR> c;
-    switch (command_type){
-        case C_BOTH_OFF:
-            c.push_back(M_LEFT_OFF);
-            c.push_back(M_RIGHT_OFF);
-            break;
-        case C_BOTH_ON:
-            c.push_back(M_LEFT_ON);
-            c.push_back(M_RIGHT_ON);
-            break;
-        case C_LEFT_OFF_RIGHT_ON:
-            c.push_back(M_LEFT_OFF);
-            c.push_back(M_RIGHT_ON);
-            break;
-        case C_LEFT_ON_RIGHT_OFF:
-            c.push_back(M_LEFT_ON);
-            c.push_back(M_RIGHT_OFF);
-            break;
-        default:
-            break;
-    }
-    return c;
-}
 
 Bot::Bot(const char *host){
     this->port = 8888;
@@ -112,8 +77,8 @@ void Bot::update_image_for_state(StateAction ps, StateAction s){
 
 
 StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
-    StateAction current_state;
-    std::cout << " ____ " << location << " " << this->target << std::endl;
+    StateAction state;
+//    std::cout << " ____ " << location << " " << this->target << std::endl;
     double dx = location.x - this->target.x;
     double dy = location.y - this->target.y;
     double norm = cv::norm(cv::Point2d(dx, dy));
@@ -127,11 +92,10 @@ StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     py *= 2 * norm;
     if(isnan(px)) px = 0.0f;
     if(isnan(py)) py = 0.0f;
-    current_state.x = (float)px;
-    current_state.y = (float)py;
-    current_state.action = 0; // to be set later
-    this->current_state = current_state;
-    return current_state;
+    state.x = (float)px;
+    state.y = (float)py;
+    state.action = 0; // to be set later
+    return state;
 };
 
 void grid_based_learning(Bot *bot){
@@ -158,7 +122,7 @@ void grid_based_learning(Bot *bot){
 void Bot::learn(){
     cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
     cv::Point2d rx = this->state.rotation;
-    this->Q_indices(px, rx);
+    this->current_state = this->Q_indices(px, rx);
 //
     if(this->agent->experience_points == 0){
 //
@@ -167,15 +131,15 @@ void Bot::learn(){
     else{
 //
         this->load_info_image();
-        this->update_image_for_state(current_state, current_state);
+        this->update_image_for_state(this->current_state, this->current_state);
     }
-    if(current_state.x == 0 && current_state.y == 0)
+    if(this->current_state.x == 0 && this->current_state.y == 0)
         return;
-    StateAction new_s = this->train_action(current_state);
+    StateAction new_s = this->train_action(this->current_state);
 
-    double cost = cv::norm(cv::Point2d(current_state.y, current_state.x));
-    std::cout << new_s.action << " (" << current_state.x  << ", ";
-    std::cout << current_state.y << ") -> ";
+    double cost = cv::norm(cv::Point2d(this->current_state.y, this->current_state.x));
+    std::cout << new_s.action << " (" << this->current_state.x  << ", ";
+    std::cout << this->current_state.y << ") -> ";
     std::cout << cost << std::endl;
 
     std::vector<MOTOR> c = motor_instructions((COMMAND) new_s.action);
@@ -184,7 +148,15 @@ void Bot::learn(){
 
 void Bot::incr_command_queue() {
     if(this->command_queue.size() > 0){
+        cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
+        cv::Point2d rx = this->state.rotation;
+        this->current_state = this->Q_indices(px, rx);
         this->apply_motor_commands(this->command_queue.front());
+        if(this->training){
+            COMMAND c = command_code(this->command_queue.front());
+            this->current_state.action = c;
+            this->train_action(this->current_state);
+        }
         this->command_queue.pop_front();
     }
     else{

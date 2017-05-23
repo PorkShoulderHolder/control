@@ -15,6 +15,9 @@
 typedef std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > LocationRotationVec;
 typedef std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> > LocationRotationMap;
 
+std::vector<MOTOR> motor_instructions(COMMAND command_type);
+COMMAND command_code(std::vector<MOTOR> command);
+
 class Utils{
 public:
     static cv::Point2d getRotationFromQuad(std::vector<cv::Point2f> quad );

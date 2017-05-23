@@ -9,10 +9,14 @@ import datetime
 session_training_data = []
 
 
-def on_exit(sig, frame):
+def save():
     with open("{0}/training_data_{1}count.json".format(DATA_DIR, len(session_training_data)), "w+") as f:
         print("saving data, {0}".format(len(session_training_data)))
         json.dump(session_training_data, f)
+
+
+def on_exit(sig, frame):
+    save()
     sys.exit(0)
 
 
@@ -35,11 +39,12 @@ class Server(SocketServer.BaseRequestHandler):
                 break
             data = data.strip()
             data = json.loads(data)
+            print(data)
             if "training" in data and data["training"] == 1:
                 session_training_data.append(data)
                 self.request.sendall("ok")
-            if "completed" in data:
-                learner.iterate(data, completed=True)
+            elif "completed" in data:
+                save()
                 self.request.sendall("ok")
             else:
                 action = learner.iterate(data)

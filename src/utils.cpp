@@ -99,6 +99,47 @@ std::deque< std::vector<MOTOR> > command_seq_for_index(int index, int count, INI
     return command_deq;
 }
 
+COMMAND command_code(std::vector<MOTOR> command){
+    if(command[0] == M_LEFT_OFF && command[1] == M_RIGHT_OFF)
+        return C_BOTH_OFF;
+    if(command[0] == M_LEFT_OFF && command[1] == M_RIGHT_ON)
+        return C_LEFT_OFF_RIGHT_ON;
+    if(command[0] == M_LEFT_ON && command[1] == M_RIGHT_OFF)
+        return C_LEFT_ON_RIGHT_OFF;
+    if(command[0] == M_LEFT_OFF && command[1] == M_RIGHT_OFF)
+        return C_BOTH_ON;
+}
+
+std::vector<MOTOR> motor_instructions(COMMAND command_type){
+    std::vector<MOTOR> c;
+    switch (command_type) {
+        case C_BOTH_OFF: {
+            c.push_back(M_LEFT_OFF);
+            c.push_back(M_RIGHT_OFF);
+            break;
+        }
+        case C_BOTH_ON: {
+            c.push_back(M_LEFT_ON);
+            c.push_back(M_RIGHT_ON);
+            break;
+        }
+        case C_LEFT_OFF_RIGHT_ON:{
+            c.push_back(M_LEFT_OFF);
+            c.push_back(M_RIGHT_ON);
+            break;
+        }
+        case C_LEFT_ON_RIGHT_OFF: {
+            c.push_back(M_LEFT_ON);
+            c.push_back(M_RIGHT_OFF);
+            break;
+        }
+        default:
+            break;
+    }
+    return c;
+}
+
+
 std::deque<MOTOR*> command_seq_for_index(int index, int count){
     command_seq_for_index(index, count, INIT_SPEED_NORMAL, PATTERN_TYPE_ITER);
 }

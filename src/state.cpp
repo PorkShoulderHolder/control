@@ -96,7 +96,6 @@ void State::schedule_task(task t, int frame_offset) {
 }
 
 void State::update(cv::Mat image) {
-
     State::display_image = image;
     State::current_image = image;
     if(State::hist.size() >= State::hist_length){
@@ -116,12 +115,16 @@ void State::update(cv::Mat image) {
         b->incr_command_queue();
     }
 
+
+
     if(State::task_queue.size() > 0){
         State::task_queue.front()();
         State::task_queue.pop_front();
     }
 
 }
+
+
 
 
 int State::hist_length = 20;
