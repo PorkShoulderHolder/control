@@ -7,7 +7,7 @@ import pickle as pkl
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from sklearn.metrics import f1_score, classification_report, accuracy_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -18,6 +18,24 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+
+
+def crossval_timeseries(cls, data, target, cv=5):
+    op = []
+    for i in xrange(1, cv + 1):
+        s_i = (i - 1) * (len(data) / cv)
+        f_i = i * (len(data) / cv)
+        X_test = data[s_i: f_i]
+        Y_test = target[s_i: f_i]
+        X_train = np.concatenate((data[:s_i], data[f_i:]), axis=0)
+        Y_train = np.concatenate((target[:s_i], target[f_i:]), axis=0)
+        print X_train.shape
+        print Y_train.shape
+        cls.fit(X_train, Y_train)
+        predictions = cls.predict(X_test)
+        op.append(f1_score(Y_test, predictions, average='micro'))
+    return op
+
 
 def perform_crossval(cls, data, target):
     print(cls.__class__.__name__)
@@ -38,22 +56,22 @@ def perform_crossval(cls, data, target):
 
 
 def evaluate_models(data, target):
-    logistic_reg = LogisticRegression(penalty='l2', class_weight='balanced')
+    logistic_reg = LogisticRegression(penalty='l2')
     logistic_reg_sparse = LogisticRegression(penalty='l1', class_weight='balanced')
     linear_svm = LinearSVC(class_weight='balanced')
     gp = GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True)
-    knn = KNeighborsClassifier()
+    knn = KNeighborsClassifier(n_neighbors=7)
     rfc = RandomForestClassifier()
     abc = AdaBoostClassifier()
     nn = MLPClassifier()
     gnb = GaussianNB()
-    svm = SVC(class_weight='balanced', probability=True)
+    svm = SVC()
     best = 0
     ret_val = None
 
-    for cls in [logistic_reg, knn, gnb, rfc]:#,  nn,  abc, gp, svm]:
+    for cls in [knn]:#,  nn,  abc, gp, svm]:
 
-        scores = perform_crossval(cls, data, target)
+        scores = crossval_timeseries(cls, data, target)
         sum_score = sum(list(scores)) / len(scores)
         print("avg score: " + str(sum_score))
         if sum_score > best:
@@ -69,18 +87,21 @@ if __name__ == '__main__':
     # data, target = ingestor.xy_conversion()
     # winner, _ = evaluate_models(data, target)
     #
-    # ingestor_less = Ingestor(2, 1)
-    # ingestor_less.concat_in_directory(dir_name=DATA_DIR)
-    # data_less, target_less = ingestor_less.xy_conversion()
-    # winner, _ = evaluate_models(data_less, target_less)
+    ingestor = Ingestor(5, 0)
+    ingestor.concat_in_directory(dir_name=DATA_DIR)
+    data_less, target_less = ingestor.xy_conversion()
 
-    ingestor_more = Ingestor(1, 0)
-    ingestor_more.concat_in_directory(dir_name=DATA_DIR)
-    data_more, target_more = ingestor_more.xy_conversion()
-    winner, _ = evaluate_models(data_more, target_more)
+    winner, _ = evaluate_models(data_less, target_less)
+
+    # ingestor_more = Ingestor(1, 0)
+    # ingestor_more.concat_in_directory(dir_name=DATA_DIR)
+    # data_more, target_more = ingestor_more.xy_conversion()
+    # winner, _ = evaluate_models(data_more, target_more)
 
 
     with open(CLASSIFIER_FN, "w+") as f:
         pkl.dump(winner, f)
+    with open(INGESTOR_FN, "w+") as fi:
+        pkl.dump(ingestor, fi)
 
     print("saved model at " + CLASSIFIER_FN)

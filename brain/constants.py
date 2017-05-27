@@ -9,6 +9,7 @@ SVM = "svm"
 
 DATA_DIR = os.path.dirname(os.path.abspath(__file__)) + "/archive"
 CLASSIFIER_FN = DATA_DIR + "/best_one"
+INGESTOR_FN = DATA_DIR + "/ingestor"
 FORWARD_NN = "forward_nn"
 BATCH_SIZE = 256
 GAMMA = 0.999

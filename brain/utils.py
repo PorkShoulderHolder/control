@@ -6,7 +6,7 @@ from os import listdir
 from os.path import isfile, join
 from constants import *
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, normalize
 
 
 class Ingestor(object):
@@ -14,13 +14,23 @@ class Ingestor(object):
         self.action_memory = action_memory
         self.position_memory = position_memory
         self.data = []
+        self.preprocessor = StandardScaler()
 
     def vectorize_json(self, js_dict):
-        x = [js_dict["id"], js_dict["x"], js_dict["y"]]
-        #
+        x = [0, 0, 0, 0, 0, 0]
+        x[js_dict["id"]] = 1
+        x0 = js_dict["x"]
+        y0 = js_dict["y"]
+        if x0 == 0 and y0 == 0:
+            return
+        x += [x0, y0]
         for i in xrange(0, self.position_memory):
-            x += [js_dict["x" + str(i)]]
-            x += [js_dict["y" + str(i)]]
+            x_i = js_dict["x" + str(i)]
+            y_i = js_dict["y" + str(i)]
+            if x_i == 0 and y_i == 0:
+                return
+            x += [x_i]
+            x += [y_i]
         for i in xrange(0, self.action_memory):
             if js_dict["a" + str(self.action_memory - (i + 1))] > 3:
                 js_dict["a" + str(self.action_memory - (i + 1))] = 3
@@ -38,15 +48,10 @@ class Ingestor(object):
 
     def vectorize_json_array(self, js_arr):
         output = [self.vectorize_json(o) for o in js_arr]
+        output = [o for o in filter(lambda x: x is not None, output)]
         self.data = output
         return output
 
-    def vectorize_saved_csv(self, fn):
-        with open(fn) as f:
-            reader = csv.DictReader(f)
-            output = self.vectorize_json(reader)
-            self.data = output
-            return output
 
     def vectorize_saved_json(self, fn):
         with open(fn) as f:
@@ -56,13 +61,26 @@ class Ingestor(object):
             return output
 
     def xy_conversion(self):
+        """
+        intended for train time only - fits the normalizer to the training data
+        @return: a tuple containing the data matrix + labels
+        """
         a = np.array(self.data)
         np.random.shuffle(a)
-        print(np.shape(a))
         X = a[:, :-1]
-        X = StandardScaler().fit_transform(X)
+        X = self.preprocessor.fit_transform(X)
+        # X = normalize(X)
         Y = a[:, -1]
         return X, Y
+
+    def transform(self, x):
+        if type(x) == list:
+            x_trans = self.vectorize_json_array(x)
+        else:
+            x_trans = [self.vectorize_json(x)[:-1]]
+        x_trans = self.preprocessor.transform(x_trans)
+        return x_trans
+
 
 
 class Session(object):

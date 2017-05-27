@@ -6,20 +6,29 @@ import pickle
 import signal
 import sys
 import datetime
+from sklearn.preprocessing import normalize
 from utils import Ingestor
-from random import random
+from random import random, randint
 session_training_data = []
 f = open(CLASSIFIER_FN)
 model = pickle.load(f)
-ingestor = Ingestor(1, 0)
+try:
+    fi = open(INGESTOR_FN)
+    ingestor = pickle.load(fi)
+    print("loaded saved ingestor")
+except IOError:
+    ingestor = Ingestor(5, 0)
 
 
 def save():
     global session_training_data
-    with open("{0}/training_data_{1}count.json".format(DATA_DIR, len(session_training_data)), "w+") as f:
+    with open("{0}/training_data_{1}_{2}count.json".format(DATA_DIR,
+                                                           len(session_training_data),
+                                                           session_training_data[0]["id"]), "w+") as f:
         print("saving data, {0}".format(len(session_training_data)))
         json.dump(session_training_data, f)
         session_training_data = []
+
 
 def on_exit(sig, frame):
     save()
@@ -38,7 +47,6 @@ class Server(SocketServer.BaseRequestHandler):
     designed to handle connections from a single ./control process
     """
 
-
     def handle(self):
         global session_training_data
         while True:
@@ -55,16 +63,19 @@ class Server(SocketServer.BaseRequestHandler):
                 self.request.sendall("ok")
             else:
                 x = ingestor.vectorize_json(data)[:-1]
-                action = model.predict_proba([x])[0]
+                # x = normalize(x)
+                action = model.predict_proba(x)[0]
                 r = random()
-                s = 0
+                print(action)
                 ia = 0
+                s = 0
                 for i, a in enumerate(action):
                     s += a
                     if s > r:
                         ia = i
                         break
-
+                if random() < 0.1:
+                    ia = randint(0, 3)
                 self.request.sendall(str(ia))
 
 

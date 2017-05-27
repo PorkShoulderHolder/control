@@ -191,6 +191,7 @@ void main_loop(int device_index, int mode){
     /* event loop */
     while(1){
         input_stream >> current_image;
+        std::cout << i << std::endl;
         if(mode == CONTROL){
             State::update(current_image);
         }
