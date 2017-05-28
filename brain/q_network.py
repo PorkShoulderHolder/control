@@ -112,7 +112,9 @@ class Learner(object):
         this_batch = torch.FloatTensor(np.array([s.tolist() for s in batch.state]))
         non_final_next_states = Variable(f_batch, volatile=True)
 
-        device_tensor = np.array([i * self.policy.bot_count + int(s) for i, s in enumerate(batch.ids)]).squeeze()
+        device_tensor = torch.ByteTensor(BATCH_SIZE, self.policy.bot_count, self.policy.action_count).zero_()
+        device_tensor[:,batch.ids, : ] = 1
+        print(device_tensor)
         state_batch = Variable(this_batch)
         action_batch = Variable(
             torch.from_numpy(
