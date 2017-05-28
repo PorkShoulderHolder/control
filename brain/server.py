@@ -7,11 +7,11 @@ import signal
 import sys
 import datetime
 from utils import Ingestor
-from random import random
+from random import random, randint
 session_training_data = []
 f = open(CLASSIFIER_FN)
 model = pickle.load(f)
-ingestor = Ingestor(1, 0)
+ingestor = Ingestor(5, 5)
 
 
 def save():
@@ -59,11 +59,21 @@ class Server(SocketServer.BaseRequestHandler):
                 r = random()
                 s = 0
                 ia = 0
+                #print action
+
+                # action[0] -= 0.2
+                # action[0] = max(0, action[0])
+                # total_nonz = 1 - action[0]
+
                 for i, a in enumerate(action):
                     s += a
                     if s > r:
                         ia = i
                         break
+
+                if ia == 0:
+                    if r < 0.5:
+                        ia = randint(1, 3)
 
                 self.request.sendall(str(ia))
 
@@ -71,6 +81,6 @@ class Server(SocketServer.BaseRequestHandler):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, on_exit)
 
-    HOST, PORT = "0.0.0.0", 9999
+    HOST, PORT = "0.0.0.0", 9998
     server = SocketServer.TCPServer((HOST, PORT), Server)
     server.serve_forever()

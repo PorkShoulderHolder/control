@@ -17,7 +17,7 @@ Bot::Bot(const char *host){
     this->host = (char *)host;
     int x_width = 500;
     int y_width = 500;
-    this->action_memory = 5;
+    this->action_memory = 50;
     int action_count = 4;
     const StateActionSpace *sa = new StateActionSpace(x_width, y_width, action_count);
     this->agent = new Agent(*sa);
@@ -241,7 +241,7 @@ StateAction Bot::train_action(StateAction state_action) {
     msg += ",\"id\":" + std::to_string(this->aruco_id) + "}";
     char buffer[1024];
     std::string brain_host = "127.0.0.1";
-    char* response = manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9999, buffer);
+    char* response = manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9998, buffer);
     state_action.action = atoi(response);
     return state_action;
 }

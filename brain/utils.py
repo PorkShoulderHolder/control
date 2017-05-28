@@ -15,24 +15,40 @@ class Ingestor(object):
         self.position_memory = position_memory
         self.data = []
 
-    def vectorize_json(self, js_dict):
-        x = [js_dict["id"], js_dict["x"], js_dict["y"]]
-        #
-        for i in xrange(0, self.position_memory):
-            x += [js_dict["x" + str(i)]]
-            x += [js_dict["y" + str(i)]]
+    def vectorize_json(self, js_dict, with_onehot=False):
+        """
+            [id, a0, a1, ..., x, y, x0, y0, ...]
+
+        @param js_dict:
+        @param with_onehot:
+        @return:
+        """
+        if with_onehot:
+            x = [0] * 6
+            x[js_dict["id"]] = 1
+
+        else:
+            x = [js_dict["id"]]
         for i in xrange(0, self.action_memory):
             if js_dict["a" + str(self.action_memory - (i + 1))] > 3:
                 js_dict["a" + str(self.action_memory - (i + 1))] = 3
             x += [js_dict["a" + str(self.action_memory - (i + 1))]]
+        x += [js_dict["x"], js_dict["y"]]
+        #
+        for i in xrange(0, self.position_memory):
+            x += [js_dict["x" + str(i)]]
+            x += [js_dict["y" + str(i)]]
 
         return x
 
-    def concat_in_directory(self, dir_name=DATA_DIR):
+    def concat_in_directory(self, dir_name=DATA_DIR, separate=False):
         files = [join(dir_name, f) for f in listdir(dir_name) if (isfile(join(dir_name, f)) and f[-5:] == ".json")]
         output = []
         for f in files:
-            output += self.vectorize_saved_json(f)
+            if separate:
+                output.append(self.vectorize_saved_json(f))
+            else:
+                output += self.vectorize_saved_json(f)
         self.data = output
         return output
 

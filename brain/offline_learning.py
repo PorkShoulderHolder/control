@@ -42,16 +42,18 @@ def evaluate_models(data, target):
     logistic_reg_sparse = LogisticRegression(penalty='l1', class_weight='balanced')
     linear_svm = LinearSVC(class_weight='balanced')
     gp = GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True)
-    knn = KNeighborsClassifier()
+    knn = KNeighborsClassifier(n_neighbors=6)
     rfc = RandomForestClassifier()
     abc = AdaBoostClassifier()
     nn = MLPClassifier()
     gnb = GaussianNB()
-    svm = SVC(class_weight='balanced', probability=True)
+    svm = SVC(probability=True, class_weight='balanced', gamma=0.1)
+    svm2 = SVC(probability=True, class_weight='balanced',gamma=1)
+    svm3 = SVC(probability=True, class_weight='balanced',gamma=10)
     best = 0
     ret_val = None
 
-    for cls in [logistic_reg, knn, gnb, rfc]:#,  nn,  abc, gp, svm]:
+    for cls in [ knn ]:#,  nn,  abc, gp, svm]:
 
         scores = perform_crossval(cls, data, target)
         sum_score = sum(list(scores)) / len(scores)
@@ -74,7 +76,7 @@ if __name__ == '__main__':
     # data_less, target_less = ingestor_less.xy_conversion()
     # winner, _ = evaluate_models(data_less, target_less)
 
-    ingestor_more = Ingestor(1, 0)
+    ingestor_more = Ingestor(5, 5)
     ingestor_more.concat_in_directory(dir_name=DATA_DIR)
     data_more, target_more = ingestor_more.xy_conversion()
     winner, _ = evaluate_models(data_more, target_more)
