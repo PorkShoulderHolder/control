@@ -213,7 +213,9 @@ void Bot::apply_motor_commands(std::vector<MOTOR> commands) {
     }
     COMMAND command_ = command_code(commands);
     this->current_state.action = command_;
-    this->past_state_actions.push_front(this->current_state);
+    long int now;
+    std::pair<StateAction, long int> sat;
+    this->past_state_actions.push_front(sat);
     if(this->past_state_actions.size() > this->action_memory){
         this->past_state_actions.pop_back();
     }
@@ -228,14 +230,21 @@ void Bot::record_motor_commands(std::vector<MOTOR> commands){
 StateAction Bot::train_action(StateAction state_action) {
     NetworkManager *manager = new NetworkManager();
     std::string msg;
+
     msg += "{\"training\":" + std::to_string((int) this->training);
     msg += ",\"x\":" + std::to_string(state_action.x);
     msg += ",\"y\":" + std::to_string(state_action.y);
     int j = 0;
-    for(StateAction s : this->past_state_actions){
+    long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()
+                                                                                 .time_since_epoch()).count();
+
+    msg += ",\"t\":" + std::to_string(now);
+    for(std::pair<StateAction, long int> sat : this->past_state_actions){
+        StateAction s = sat.first;
         msg += ",\"a" + std::to_string(j) + "\":" + std::to_string(s.action);
         msg += ",\"x" + std::to_string(j) + "\":" + std::to_string(s.x);
         msg += ",\"y" + std::to_string(j) + "\":" + std::to_string(s.y);
+        msg += ",\"t" + std::to_string(j) + "\":" + std::to_string(now);
         j++;
     }
     msg += ",\"id\":" + std::to_string(this->aruco_id) + "}";

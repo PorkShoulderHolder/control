@@ -5,13 +5,19 @@ from constants import *
 import pickle
 import signal
 import sys
+import numpy as np
 import datetime
 from utils import Ingestor
 from random import random, randint
+from q_network import Learner, Policy, ReplayMemory
+
 session_training_data = []
 f = open(CLASSIFIER_FN)
 model = pickle.load(f)
-ingestor = Ingestor(5, 5)
+
+ingestor = Ingestor(5, 1)
+q_net = Learner(action_memory=ingestor.action_memory, position_memory=ingestor.position_memory)
+
 
 
 def save():
@@ -38,7 +44,6 @@ class Server(SocketServer.BaseRequestHandler):
     designed to handle connections from a single ./control process
     """
 
-
     def handle(self):
         global session_training_data
         while True:
@@ -54,8 +59,9 @@ class Server(SocketServer.BaseRequestHandler):
                 save()
                 self.request.sendall("ok")
             else:
-                x = ingestor.vectorize_json(data)[:-1]
-                action = model.predict_proba([x])[0]
+                x = ingestor.vectorize_json(data)
+
+                action = q_net.predict_proba(x) #model.predict_proba([x])[0]
                 r = random()
                 s = 0
                 ia = 0
@@ -65,15 +71,15 @@ class Server(SocketServer.BaseRequestHandler):
                 # action[0] = max(0, action[0])
                 # total_nonz = 1 - action[0]
 
-                for i, a in enumerate(action):
-                    s += a
-                    if s > r:
-                        ia = i
-                        break
-
-                if ia == 0:
-                    if r < 0.5:
-                        ia = randint(1, 3)
+                # for i, a in enumerate(action):
+                #     s += a
+                #     if s > r:
+                #         ia = i
+                #         break
+                ia = np.argmax(action)
+                # if ia == 0:
+                #     if r < 0.5:
+                #         ia = randint(1, 3)
 
                 self.request.sendall(str(ia))
 

@@ -9,6 +9,12 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 
+def to_triple(x):
+    mag = np.linalg.norm(x)
+    unit_sphere = x / mag
+    return [unit_sphere[0], unit_sphere[1], mag]
+
+
 class Ingestor(object):
     def __init__(self, action_memory=3, position_memory=2):
         self.action_memory = action_memory

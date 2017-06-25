@@ -5,12 +5,14 @@ import numpy as np
 from collections import namedtuple
 import Queue
 import torch
+from sklearn.metrics import f1_score
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.nn import functional
 from torchvision import transforms
 from constants import *
+import pickle as pkl
 from utils import Ingestor
 
 
@@ -45,7 +47,7 @@ class Policy(nn.Module):
         super(Policy, self).__init__()
         self.bot_count = bot_count
         self.action_count = action_count
-        self.input_layer = nn.Linear(10, 32)
+        self.input_layer = nn.Linear(8, 32)
         self.output_layer = nn.Linear(32, self.bot_count * self.action_count)
         self.softmax = nn.Softmax()
 
@@ -58,7 +60,7 @@ class Policy(nn.Module):
         return x
 
 
-def softmax(x):
+def softmax(x, axis=0):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)
@@ -69,15 +71,15 @@ class Learner(object):
         self.steps_done = 0
         self.devices = 5
         self.actions = 4
-        # try:
-        #     self.policy = torch.load(MODEL_FN)
-        #     print("loaded saved model")
-        # except IOError:
-        self.policy = Policy(5, 4)
-        print("using new model")
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=1e-2)
+        try:
+            self.policy = torch.load(MODEL_FN)
+            print("loaded saved model")
+        except IOError:
+            self.policy = Policy(5, 4)
+            print("using new model")
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=0.000012)
         self.state = None
-        self.memory = ReplayMemory(2000)
+        self.memory = ReplayMemory(43000)
         self.last_synch = 0
         self.t = 0
         self.action_memory = action_memory
@@ -89,66 +91,80 @@ class Learner(object):
         self.distance = 0
         self.durations = []
 
-    def select_action(self, state, i):
+    def predict_proba(self, x):
+        id = x[0]
+
+        d = torch.FloatTensor([x])
+
+        output = self.policy(Variable(self.clean(d), volatile=True))
+        output = softmax(output.data.numpy()[0])
+
+        return output[id]
+
+    def select_action(self, state, i, eps=0.15):
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * \
             math.exp(-1. * self.steps_done / EPS_DECAY)
         self.steps_done += 1
-        if sample > 0.15:
-            output = self.policy(Variable(state, volatile=True))
+        if sample > eps:
+            output = self.policy(Variable(self.clean(state), volatile=True))
             output = output.data.numpy()
-            output = np.argmax(output[0][i])
+            output = np.argmax(output[0][int(i)])
             return output
         else:
             output = random.randrange(self.policy.action_count)
             return output
+
+    def device_mask(self, ids):
+        dev_index = np.zeros(BATCH_SIZE * self.policy.bot_count)
+        xx = np.array([i * self.policy.bot_count + int(bid) for i, bid in enumerate(ids)])
+        dev_index[xx] = 1
+        oo = np.reshape(dev_index, (BATCH_SIZE, self.policy.bot_count))
+        dev_index = np.array([[d] * self.policy.action_count for line in oo for d in line])
+        dev_index = np.reshape(dev_index, (BATCH_SIZE, self.policy.bot_count, self.policy.action_count))
+        return torch.from_numpy(oo).byte(), torch.from_numpy(dev_index).byte()
+
+    def action_mask(self, actions):
+        dev_index = np.zeros(BATCH_SIZE * self.policy.action_count)
+        xx = np.array([i * self.policy.action_count + int(bid) for i, bid in enumerate(actions)])
+        dev_index[xx] = 1
+        oo = np.reshape(dev_index, (BATCH_SIZE, self.policy.action_count))
+        dev_index = np.array([[d] * self.policy.bot_count for line in oo for d in line])
+        dev_index = np.reshape(dev_index, (BATCH_SIZE, self.policy.action_count, self.policy.bot_count))
+        dev_index = dev_index.transpose((0, 2, 1))
+        return torch.from_numpy(oo).byte(), torch.from_numpy(dev_index).byte()
 
     def optimize_model(self):
         if len(self.memory) < BATCH_SIZE:
             return
         transitions = self.memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
-        f_batch = torch.FloatTensor(np.array([s.tolist() for s in batch.next_state]))
-        this_batch = torch.FloatTensor(np.array([s.tolist() for s in batch.state]))
-        non_final_next_states = Variable(f_batch, volatile=True)
+        next_state_batch = Variable(torch.FloatTensor(np.array([self.clean(s.tolist()) for s in batch.next_state])),
+                                    volatile=True)
+        state_batch = Variable(torch.FloatTensor(np.array([self.clean(s.tolist()) for s in batch.state])))
 
-        dev_index = np.zeros(BATCH_SIZE * self.policy.bot_count)
-        dev_index[np.array([i * self.policy.bot_count + bid for i, bid in enumerate(batch.ids)])] = 1
-        dev_index = np.reshape(dev_index, (BATCH_SIZE, self.policy.bot_count, self.policy.action_count))
-
-        print dev_index
-        # device_tensor = torch.ByteTensor(BATCH_SIZE, .zero_()
-        # device_tensor[:,batch.ids, : ] = 1
-        # print(device_tensor)
-        state_batch = Variable(this_batch)
-        action_batch = Variable(
-            torch.from_numpy(
-                np.array([i * self.policy.action_count + int(s) for i, s in enumerate(batch.action)]).squeeze()
-            )
-        )
+        oo_devices, device_tensor = self.device_mask(batch.ids)
+        oo_action, action_tensor = self.action_mask(batch.action)
         reward_batch = Variable(torch.cat([torch.FloatTensor([[float(a)]]) for a in batch.reward]))
 
+        # run forward pass on current state
+        state_batch = state_batch.view(len(state_batch), -1)
         op = self.policy(state_batch)
+        flat_op = op[device_tensor].view(BATCH_SIZE, self.policy.action_count)
 
-        flat_op = op.view(len(op) * self.policy.bot_count, self.policy.action_count).data.numpy()[device_array]
-        print(flat_op.shape)
+        # run forward pass on next state
+        next_state_values = self.policy(next_state_batch).max(2)[0]
+        flat_nsv = next_state_values[oo_devices]
 
-        flat_op = np.reshape(flat_op, len(flat_op) * self.policy.action_count)
-        print(flat_op.shape)
-        flat_op = Variable(torch.from_numpy(flat_op[action_array]))
-        print(flat_op)
-        next_state_values = self.policy(non_final_next_states).max(2)[0]
-        flat_nsv = next_state_values.view(len(next_state_values) * self.policy.bot_count).data.numpy()[device_array]
-        flat_nsv = Variable(torch.from_numpy(flat_nsv))
-
-        next_state_values.volatile = False
+        flat_nsv.volatile = False
         expected_state_action_values = (flat_nsv * GAMMA) + reward_batch
 
+
         # Compute Huber loss
-        print(flat_op)
-        print(flat_nsv)
-        loss = functional.smooth_l1_loss(flat_op, expected_state_action_values)
-        print("epoch {} loss: {}".format(self.t, loss))
+        loss = functional.smooth_l1_loss(flat_op[oo_action], expected_state_action_values)
+        if self.t % 100 == 0:
+            print("epoch {} loss: {}".format(self.t, loss.data.numpy()[0]))
+
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
@@ -158,13 +174,22 @@ class Learner(object):
 
     @staticmethod
     def clean(data):
-        return torch.Tensor([[data["x"], data["y"]]])
+        if type(data) is not list:
+            # shape = data.numpy().shape
+            # data = data.view(shape[0] * shape[1], shape[2])
+            return data[:, 2:]
+        else:
+            data = np.array([data])
+            if len(data.shape) > 2:
+                data = np.reshape(data, (data.shape[0] * data.shape[1], data.shape[2]))
+            return data[:, 2:]
 
     @staticmethod
     def append_action(vec_data, a):
         return torch.Tensor([[vec_data[0][0], vec_data[0][1], a]])
 
-    def train(self, data, epochs=10):
+    def train(self, data, epochs=1000):
+        data = filter(lambda x: len(x) > 0, data)
         concat = np.concatenate(data, axis=0)
         norms = np.linalg.norm(concat[:, 1 + self.action_memory :3 + self.action_memory], axis=1)
         max_norm = np.max(norms)
@@ -177,7 +202,6 @@ class Learner(object):
         for i in xrange(0, epochs):
             self.optimize_model()
             self.t = i
-
 
     def iterate(self, new_state, completed=False):
         if completed:
@@ -210,16 +234,31 @@ class Learner(object):
     def save(self):
         torch.save(self.policy, MODEL_FN)
 
+    # def load(self):
+    #     with open(MODEL_FN) as f:
+    #         a = torch.load(f)
+    #         self.policy = pkl.load(f)
 
 
 if __name__ == '__main__':
     ingestor = Ingestor(5, 1)
     ingestor.concat_in_directory(dir_name=DATA_DIR, separate=True)
     data = [np.array(d) for d in ingestor.data]
-    print (":::::")
-    test_size = 10000
+    d = data[:-1]
+
     learner = Learner(action_memory=ingestor.action_memory, position_memory=ingestor.position_memory)
-    learner.train(data[:-1])
+    prediction = [learner.select_action(torch.FloatTensor(np.array([d.tolist()])), i=d[0], eps=0) for d in data[-1]]
+    print f1_score(data[-1][:, 1], prediction, average='micro')
+    learner.train(data[:-1], epochs=2000)
+    learner.save()
+    prediction = [learner.select_action(torch.FloatTensor(np.array([d.tolist()])), i=d[0], eps=0) for d in data[-1]]
+    print f1_score(data[-1][:, 1], prediction, average='micro')
+    learner.save()
+    learner.train(data[:-1], epochs=10000)
+    learner.save()
+    prediction = [learner.select_action(torch.FloatTensor(np.array([d.tolist()])), i=d[0], eps=0) for d in data[-1]]
+    print f1_score(data[-1][:, 1], prediction, average='micro')
+
 
 
 

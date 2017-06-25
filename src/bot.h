@@ -64,7 +64,7 @@ private:
     float left_motor_on;
     int port;
     float right_motor_on;
-    std::deque<StateAction> past_state_actions;
+    std::deque<std::pair<StateAction, long int>> past_state_actions;
 
 };
 
