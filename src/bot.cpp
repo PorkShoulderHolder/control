@@ -8,6 +8,7 @@
 #include <iostream>
 #include "state.h"
 
+#define TIME_CONCAT 1498414000000
 const char *M_COMMAND_STR[4] = { "r:::0", "l:::0", "r:::1", "l:::1"};
 
 
@@ -81,19 +82,35 @@ StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
 //    std::cout << " ____ " << location << " " << this->target << std::endl;
     double dx = location.x - this->target.x;
     double dy = location.y - this->target.y;
-    double norm = cv::norm(cv::Point2d(dx, dy));
+    cv::Point2d d(dx, dy);
+    double norm = cv::norm(d);
     double norm_r = cv::norm(rotation);
-    dx /= norm;
-    dy /= norm;
-    double rot =   atan2(rotation.x / norm_r, rotation.y / norm_r) - atan2(dx, dy);
-    double px = dx * cos(rot) - dy * sin(rot);
-    double py = dx * sin(rot) + dy * cos(rot);
-    px *= 2 * norm;
-    py *= 2 * norm;
+    double cos_theta = d.dot(rotation) / (norm * norm_r);
+    double theta = acos(cos_theta);
+    double cross = rotation.cross(d);
+    if( cross == -0.0f ){
+        theta = M_PI;
+    }
+    else if( cross < 0.0f){
+        theta = (2 * M_PI) - theta;
+    }
+
+    double new_x = 0 * cos(theta) - 1 * sin(theta);
+    double new_y =  0  * sin(theta) + 1 * cos(theta);
+    new_x *= norm;
+    new_y *= norm;
+    double px = new_x;
+    double py = new_y;
     if(isnan(px)) px = 0.0f;
     if(isnan(py)) py = 0.0f;
     state.x = (float)px;
     state.y = (float)py;
+    cv::Point2d center(200, 200);
+    cv::Point2d target(200 + px * 3.5, 200 + py * 3.5);
+    cv::circle(State::display_image, center, 5, cv::Scalar(0,244,0), 5);
+    cv::circle(State::display_image, target, 5, cv::Scalar(0,244,244), 5);
+    cv::line(State::display_image, center, target, cv::Scalar(0,244,0), 5);
+
     state.action = 0; // to be set later
     return state;
 };
@@ -213,8 +230,10 @@ void Bot::apply_motor_commands(std::vector<MOTOR> commands) {
     }
     COMMAND command_ = command_code(commands);
     this->current_state.action = command_;
-    long int now;
     std::pair<StateAction, long int> sat;
+    sat.first = this->current_state;
+    sat.second = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()
+                                                                               .time_since_epoch()).count();
     this->past_state_actions.push_front(sat);
     if(this->past_state_actions.size() > this->action_memory){
         this->past_state_actions.pop_back();
@@ -238,13 +257,13 @@ StateAction Bot::train_action(StateAction state_action) {
     long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()
                                                                                  .time_since_epoch()).count();
 
-    msg += ",\"t\":" + std::to_string(now);
+    msg += ",\"t\":" + std::to_string(now - TIME_CONCAT);
     for(std::pair<StateAction, long int> sat : this->past_state_actions){
         StateAction s = sat.first;
         msg += ",\"a" + std::to_string(j) + "\":" + std::to_string(s.action);
         msg += ",\"x" + std::to_string(j) + "\":" + std::to_string(s.x);
         msg += ",\"y" + std::to_string(j) + "\":" + std::to_string(s.y);
-        msg += ",\"t" + std::to_string(j) + "\":" + std::to_string(now);
+        msg += ",\"t" + std::to_string(j) + "\":" + std::to_string(sat.second - TIME_CONCAT);
         j++;
     }
     msg += ",\"id\":" + std::to_string(this->aruco_id) + "}";

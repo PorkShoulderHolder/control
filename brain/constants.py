@@ -8,7 +8,7 @@ INIT_MSG = "init"
 SVM = "svm"
 
 DATA_DIR = os.path.dirname(os.path.abspath(__file__)) + "/archive"
-CLASSIFIER_FN = DATA_DIR + "/best_one"
+CLASSIFIER_FN = DATA_DIR + "/best_sarsa"
 FORWARD_NN = "forward_nn"
 BATCH_SIZE = 1000
 GAMMA = 0.999

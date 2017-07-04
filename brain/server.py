@@ -9,15 +9,13 @@ import numpy as np
 import datetime
 from utils import Ingestor
 from random import random, randint
-from q_network import Learner, Policy, ReplayMemory
+from q_network import Learner, Policy, ReplayMemory, softmax
 
 session_training_data = []
 f = open(CLASSIFIER_FN)
 model = pickle.load(f)
 
 ingestor = Ingestor(5, 1)
-q_net = Learner(action_memory=ingestor.action_memory, position_memory=ingestor.position_memory)
-
 
 
 def save():
@@ -26,6 +24,7 @@ def save():
         print("saving data, {0}".format(len(session_training_data)))
         json.dump(session_training_data, f)
         session_training_data = []
+
 
 def on_exit(sig, frame):
     save()
@@ -47,7 +46,7 @@ class Server(SocketServer.BaseRequestHandler):
     def handle(self):
         global session_training_data
         while True:
-            data = self.request.recv(1024)
+            data = self.request.recv(4096)
             if data == '':
                 break
             data = data.strip()
@@ -59,29 +58,28 @@ class Server(SocketServer.BaseRequestHandler):
                 save()
                 self.request.sendall("ok")
             else:
-                x = ingestor.vectorize_json(data)
+                x = np.array(ingestor.vectorize_json(data))
+                _, x = ingestor.xy_conversion([x])
 
-                action = q_net.predict_proba(x) #model.predict_proba([x])[0]
+                actions = []
+                for a in xrange(0, 4):
+                    x[:, 2] = a
+                    actions += [model.predict(x)]
                 r = random()
+                soft = softmax(actions)
+
+
                 s = 0
-                ia = 0
-                #print action
+                for i, a in enumerate(soft):
+                    s += a
+                    if s > r:
+                        ia = i
+                        break
 
-                # action[0] -= 0.2
-                # action[0] = max(0, action[0])
-                # total_nonz = 1 - action[0]
 
-                # for i, a in enumerate(action):
-                #     s += a
-                #     if s > r:
-                #         ia = i
-                #         break
-                ia = np.argmax(action)
-                # if ia == 0:
-                #     if r < 0.5:
-                #         ia = randint(1, 3)
+                self.request.sendall(str(0))
 
-                self.request.sendall(str(ia))
+
 
 
 if __name__ == "__main__":
