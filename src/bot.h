@@ -4,7 +4,7 @@
 
 #ifndef CONTROL_BOT_H
 #define CONTROL_BOT_H
-
+#define BOT_SETTINGS_FILE "config.txt"
 #include <opencv2/opencv.hpp>
 #include <deque>
 #include "agent.h"
@@ -54,7 +54,10 @@ public:
     float max_distance;
     char *host;
     std::deque< std::vector<MOTOR> > command_queue;
+    std::deque< cv::Point2d > target_queue;
     bool on_off_inverted;
+    int left_command;
+    int right_command;
     bool lr_inverted;
     int aruco_id;
     bool training;
@@ -63,6 +66,7 @@ public:
 private:
     float left_motor_on;
     int port;
+    float reached_target_thresh;
     float right_motor_on;
     std::deque<std::pair<StateAction, long int> > past_state_actions;
 

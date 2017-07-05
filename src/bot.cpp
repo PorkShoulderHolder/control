@@ -25,9 +25,13 @@ Bot::Bot(const char *host){
     this->training = false;
     this->max_distance = x_width / 2.0f;
     this->target = cv::Point2d(250, 250);
+    this->reached_target_thresh = 3.4f;
     for (int i = 0; i < action_count; ++i) {
         this->info_images.push_back(cv::Mat::zeros(sa->count_x, sa->count_y, CV_32FC3));
     }
+    std::pair<int, int> lr = Utils::get_lr(this->host);
+    this->right_command = lr.first;
+    this->left_command = lr.second;
     this->load_info_image();
 }
 
@@ -140,13 +144,8 @@ void Bot::learn(){
     cv::Point2f px((float)this->state.location[0], (float)this->state.location[1]);
     cv::Point2d rx = this->state.rotation;
     this->current_state = this->Q_indices(px, rx);
-//
-    if(this->agent->experience_points == 0){
-//
-    //    this->agent->update(current_state, current_state);
-    }
-    else{
-//
+
+    if(this->agent->experience_points != 0){
         this->load_info_image();
         this->update_image_for_state(this->current_state, this->current_state);
     }
@@ -247,30 +246,38 @@ void Bot::record_motor_commands(std::vector<MOTOR> commands){
 
 
 StateAction Bot::train_action(StateAction state_action) {
-    NetworkManager *manager = new NetworkManager();
-    std::string msg;
-
-    msg += "{\"training\":" + std::to_string((int) this->training);
-    msg += ",\"x\":" + std::to_string(state_action.x);
-    msg += ",\"y\":" + std::to_string(state_action.y);
-    int j = 0;
-    long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()
-                                                                                 .time_since_epoch()).count();
-
-    msg += ",\"t\":" + std::to_string(now - TIME_CONCAT);
-    for(std::pair<StateAction, long int> sat : this->past_state_actions){
-        StateAction s = sat.first;
-        msg += ",\"a" + std::to_string(j) + "\":" + std::to_string(s.action);
-        msg += ",\"x" + std::to_string(j) + "\":" + std::to_string(s.x);
-        msg += ",\"y" + std::to_string(j) + "\":" + std::to_string(s.y);
-        msg += ",\"t" + std::to_string(j) + "\":" + std::to_string(sat.second - TIME_CONCAT);
-        j++;
+//    NetworkManager *manager = new NetworkManager();
+//    std::string msg;
+//
+//    msg += "{\"training\":" + std::to_string((int) this->training);
+//    msg += ",\"x\":" + std::to_string(state_action.x);
+//    msg += ",\"y\":" + std::to_string(state_action.y);
+//    int j = 0;
+//    long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()
+//                                                                                 .time_since_epoch()).count();
+//
+//    msg += ",\"t\":" + std::to_string(now - TIME_CONCAT);
+//    for(std::pair<StateAction, long int> sat : this->past_state_actions){
+//        StateAction s = sat.first;
+//        msg += ",\"a" + std::to_string(j) + "\":" + std::to_string(s.action);
+//        msg += ",\"x" + std::to_string(j) + "\":" + std::to_string(s.x);
+//        msg += ",\"y" + std::to_string(j) + "\":" + std::to_string(s.y);
+//        msg += ",\"t" + std::to_string(j) + "\":" + std::to_string(sat.second - TIME_CONCAT);
+//        j++;
+//    }
+//    msg += ",\"id\":" + std::to_string(this->aruco_id) + "}";
+//    char buffer[1024];
+//    std::string brain_host = "127.0.0.1";
+//    char* response = manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9998, buffer);
+    if(state_action.x > 0){
+        state_action.action = this->right_command;
     }
-    msg += ",\"id\":" + std::to_string(this->aruco_id) + "}";
-    char buffer[1024];
-    std::string brain_host = "127.0.0.1";
-    char* response = manager->send_tcp((char*)brain_host.c_str(), (char*)msg.c_str(), 9998, buffer);
-    state_action.action = atoi(response);
+    else{
+        state_action.action = this->left_command;
+    }
+    if(cv::norm(cv::Point2d(state_action.x, state_action.y)) < this->reached_target_thresh){
+        state_action.action = C_BOTH_OFF;
+    }
     return state_action;
 }
 

@@ -10,6 +10,9 @@
 #define DEVICE_FILE "domains.txt"
 #define CAMERA_PARAMS_FILE "camera_data.xml"
 
+
+
+
 enum PATTERN_TYPE{
     PATTERN_TYPE_ITER,
     PATTERN_TYPE_TREE
@@ -154,6 +157,29 @@ void test_task_30(void){
 
 void end_match_aruco(){
 
+}
+
+std::pair<int, int> Utils::get_lr(char *bot_name){
+    std::ifstream setting_file(BOT_SETTINGS_FILE);
+    std::string line;
+    std::string bot_str(bot_name);
+    while (std::getline(setting_file, line)) {
+        std::stringstream line_stream(line);
+        std::string hostname;
+        int left;
+        int right;
+
+        while(line_stream >> hostname >> left >> right){
+            if(hostname.compare(bot_str) == 0){
+                std::cout << line << std::endl;
+                setting_file.close();
+                return std::pair<int, int>(left, right);
+            }
+
+        }
+    }
+    std::cout << "host name " + bot_str + " not found in config file \n";
+    return std::pair<int, int>(-1, -1);
 }
 
 bool Utils::begin_match_aruco() {

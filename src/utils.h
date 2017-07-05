@@ -24,6 +24,7 @@ public:
     static LocationRotationVec compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads);
     static cv::Mat homogenous_quad( std::vector<cv::Point2f> quad);
     static bool begin_match_aruco();
+    static std::pair<int, int> get_lr(char* bot_name);
     static std::vector<char *> get_device_names_from_file();
 
 private:

@@ -61,23 +61,8 @@ class Server(SocketServer.BaseRequestHandler):
                 x = np.array(ingestor.vectorize_json(data))
                 _, x = ingestor.xy_conversion([x])
 
-                actions = []
-                for a in xrange(0, 4):
-                    x[:, 2] = a
-                    actions += [model.predict(x)]
-                r = random()
-                soft = softmax(actions)
-
-
-                s = 0
-                for i, a in enumerate(soft):
-                    s += a
-                    if s > r:
-                        ia = i
-                        break
-
-
-                self.request.sendall(str(0))
+                ai = 1 if x[0][0] > 0 else 2
+                self.request.sendall(str(ai))
 
 
 

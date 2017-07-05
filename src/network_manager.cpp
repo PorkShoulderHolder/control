@@ -30,13 +30,13 @@ NetworkManager::NetworkManager() {
         }
         std::cout << "new udp socket created" << std::endl;
     }
-    if(NetworkManager::backend_sock == 0) {
-        NetworkManager::backend_sock = socket(AF_INET, SOCK_STREAM, 0);
-        if (NetworkManager::backend_sock < 0) {
-            error((char *) "ERROR opening socket");
-        }
-        std::cout << "new tcp socket created" << std::endl;
-    }
+//    if(NetworkManager::backend_sock == 0) {
+//        NetworkManager::backend_sock = socket(AF_INET, SOCK_STREAM, 0);
+//        if (NetworkManager::backend_sock < 0) {
+//            error((char *) "ERROR opening socket");
+//        }
+//        std::cout << "new tcp socket created" << std::endl;
+//    }
 }
 
 bool send_to(char *hostname, char *msg, int port, int socket_ptr) {
