@@ -35,39 +35,32 @@ public:
     ~Bot();
 
     StateAction Q_indices(cv::Point2f location, cv::Point2f rotation);
-    void save_to_file();
     void load_info_image();
     void set_color(std::vector<StateAction>);
     void set_color(std::vector<StateAction>, cv::Vec3f);
     void apply_motor_commands( std::vector<MOTOR> );
-    void record_motor_commands( std::vector<MOTOR> );
-    void set_target_location( cv::Point );
     void incr_command_queue();
-    void learn();
-    void update_image_for_state(StateAction prev, StateAction s);
+    void act();
+    void update_image_for_state(StateAction s);
     static void match_movement(int, int);
-    StateAction train_action(StateAction state_action);
+    StateAction control_action(StateAction state_action);
     phys_state state;
     StateAction current_state;
     cv::Point2d target;
     std::vector<cv::Mat> info_images;
-    float max_distance;
     char *host;
     std::deque< std::vector<MOTOR> > command_queue;
     std::deque< cv::Point2d > target_queue;
-    bool on_off_inverted;
     int left_command;
     int right_command;
-    bool lr_inverted;
     int aruco_id;
     bool training;
     int action_memory;
     Agent *agent;
 private:
-    float left_motor_on;
     int port;
+    std::string send_state(StateAction sa);
     float reached_target_thresh;
-    float right_motor_on;
     std::deque<std::pair<StateAction, long int> > past_state_actions;
 
 };
