@@ -51,10 +51,13 @@ public:
     char *host;
     std::deque< std::vector<MOTOR> > command_queue;
     std::deque< cv::Point2d > target_queue;
+    void append_path(std::vector< cv::Point2d >);
+    void replace_path(std::vector< cv::Point2d >);
     int left_command;
     int right_command;
     int aruco_id;
     bool training;
+    bool evasive;
     int action_memory;
     Agent *agent;
 private:

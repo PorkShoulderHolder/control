@@ -26,6 +26,7 @@ Bot::Bot(const char *host){
     for (int i = 0; i < action_count; ++i) {
         this->info_images.push_back(cv::Mat::zeros(sa->count_x, sa->count_y, CV_32FC3));
     }
+    this->evasive = false;
     std::pair<int, int> lr = Utils::get_lr(this->host);
     this->right_command = lr.first;
     this->left_command = lr.second;
@@ -258,11 +259,23 @@ std::string Bot::send_state(StateAction state_action) {
     return std::string(response);
 }
 
+void Bot::append_path(std::vector< cv::Point2d > path){
+    for(cv::Point2d target : path){
+        this->target_queue.push_back(target);
+    }
+}
+
+void Bot::replace_path(std::vector< cv::Point2d > path){
+    this->target_queue.clear();
+    this->append_path(path);
+}
+
 StateAction Bot::control_action(StateAction state_action) {
     /*
-     *
+     * basic heuristic control governing movement towards or away the target
      */
-    if(state_action.x > 0){
+    int fight_or_flight = this->evasive ? -1 : 1;
+    if(fight_or_flight * state_action.x > 0){
         state_action.action = this->right_command;
     }
     else{
@@ -270,6 +283,8 @@ StateAction Bot::control_action(StateAction state_action) {
     }
     if(cv::norm(cv::Point2d(state_action.x, state_action.y)) < this->reached_target_thresh){
         state_action.action = C_BOTH_OFF;
+        this->target_queue.pop_front();
+        this->target = this->target_queue.front();
     }
     return state_action;
 }
