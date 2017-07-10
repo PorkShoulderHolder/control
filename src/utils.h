@@ -26,7 +26,8 @@ public:
     static bool begin_match_aruco();
     static std::pair<int, int> get_lr(char* bot_name);
     static std::vector<char *> get_device_names_from_file();
-
+    static cv::Point2f find_closest(std::vector<Bot *> bots, Bot *bot);
+    static cv::Point2f centroid(std::vector<Bot *> bots);
 private:
 
     static cv::Mat distortion_coefs;

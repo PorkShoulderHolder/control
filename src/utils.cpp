@@ -159,6 +159,34 @@ void end_match_aruco(){
 
 }
 
+cv::Point2f Utils::find_closest(std::vector<Bot *> bots, Bot *bot){
+    double min_dist = 10000000;
+    cv::Point2f closest;
+    cv::Point2f p0 = cv::Point2f((float)bot->state.location[0], (float)bot->state.location[1]);
+    for(Bot *b : bots){
+        cv::Point2f p1 = cv::Point2f((float)b->state.location[0], (float)b->state.location[1]);
+        std::vector<cv::Point2f> pts;
+        pts.push_back(p1 - p0);
+        double d = cv::norm(pts, cv::NORM_L2SQR);
+        if(d < min_dist){
+            min_dist = d;
+            closest = p1;
+        }
+
+    }
+    return closest;
+}
+
+cv::Point2f Utils::centroid(std::vector<Bot *> bots){
+    cv::Point2f centroid(0.0f, 0.0f);
+    for(Bot *b : bots){
+        centroid.x += (float)b->state.location[0];
+        centroid.y += (float)b->state.location[1];
+    }
+    centroid = centroid * (1.0f / bots.size());
+    return centroid;
+}
+
 std::pair<int, int> Utils::get_lr(char *bot_name){
     std::ifstream setting_file(BOT_SETTINGS_FILE);
     std::string line;
