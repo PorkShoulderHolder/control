@@ -7,23 +7,6 @@
 #define PP_NEAREST 3
 
 
-Behavior::Behavior(std::vector<Bot*> bots) {
-    this->bots = bots;
-
-}
-
-Behavior::Behavior() {
-}
-
-void Behavior::update() {
-    /*
-     * implement in subclass
-     */
-
-}
-
-
-
 FollowTheLeader::FollowTheLeader(){
     this->target = cv::Point2f(0,0);
 }

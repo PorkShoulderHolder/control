@@ -5,29 +5,23 @@
 #ifndef CONTROL_BEHAVIORS_H
 #define CONTROL_BEHAVIORS_H
 
-#import <bot.h>
-#include <vector>
-#include "bot.h"
+#import "bot.h"
 #include "utils.h"
+#include "behavior_base.h"
+#include <vector>
 
 
-class Behavior {
+
+
+class FollowTheLeader : public Behavior{
 public:
-    Behavior();
-    Behavior(std::vector<Bot*> bots);
-    virtual void update();
-    std::vector<Bot*> bots;
-private:
-};
-
-class FollowTheLeader : Behavior{
     FollowTheLeader();
     FollowTheLeader(cv::Point2f t);
     void update();
     cv::Point2f target;
 };
 
-class PredatorPrey : Behavior{
+class PredatorPrey : public Behavior{
 public:
     PredatorPrey();
     PredatorPrey(std::vector<Bot *> bots);

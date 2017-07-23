@@ -56,7 +56,7 @@ LocationRotationMap State::update_markers(cv::Mat image){
             target = location;
         }
     }
-
+    State::behavior->target = cv::Point2d(target[0], target[1]);
     for( Bot *b : State::devices ){
         b->state.location = marker_locations[b->aruco_id];
         b->state.rotation = cv::Vec2d(marker_rotations[b->aruco_id][0], marker_rotations[b->aruco_id][1]);
@@ -138,6 +138,7 @@ std::vector< Bot* > State::devices;
 std::deque<t_frame> State::hist;
 std::deque< frame_tasks > State::task_queue;
 cv::Mat State::current_image;
+Behavior *State::behavior;
 cv::Mat State::difference_image;
 cv::Mat State::display_image;
 cv::Mat State::info_image = cv::Mat::zeros(200,200, CV_8UC3);

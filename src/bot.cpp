@@ -281,10 +281,12 @@ StateAction Bot::control_action(StateAction state_action) {
     else{
         state_action.action = this->left_command;
     }
-    if(cv::norm(cv::Point2d(state_action.x, state_action.y)) < this->reached_target_thresh){
+    if(cv::norm(cv::Point2d(state_action.x, state_action.y)) < this->reached_target_thresh) {
         state_action.action = C_BOTH_OFF;
-        this->target_queue.pop_front();
-        this->target = this->target_queue.front();
+        if (this->target_queue.size() > 0){
+            this->target = this->target_queue.front();
+            this->target_queue.pop_front();
+        }
     }
     return state_action;
 }

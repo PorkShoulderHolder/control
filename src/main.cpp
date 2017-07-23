@@ -11,14 +11,20 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <string>
+#include <map>
 #include <cstdlib>
 #include <csignal>
 
+#include "argparse.hpp"
+#include "behaviors.h"
 
 
 #define DEBUG false
 #define CONTROL 0
 #define WATCH 1
+#define PREDATOR_PREY 2
+#define FOLLOW 3
+
 #define RIGHT_ARROW_KEY 63235
 #define LEFT_ARROW_KEY 63234
 #define TOP_ARROW_KEY 63232
@@ -64,8 +70,6 @@ void exiting(int i){
 }
 
 void handle_event(int key){
-
-
     Bot *bot;
     if(State::devices.size() > 0) {
         bot = State::devices.back();
@@ -173,7 +177,8 @@ std::string update_fps(int i){
     return fps_str;
 }
 
-void main_loop(int device_index, int mode){
+
+void main_loop(int device_index, int main_mode, int sub_mode){
     cv::Point text_loc(20, 20);
     cv::Mat current_image;
     int i = 1;
@@ -186,28 +191,36 @@ void main_loop(int device_index, int mode){
     }
     init_application();
     init_state();
+    switch (sub_mode){
+        case FOLLOW:
+            State::behavior = new FollowTheLeader();
+            State::behavior->bots = State::devices;
+        case PREDATOR_PREY:
+            State::behavior = new PredatorPrey();
+            State::behavior->bots = State::devices;
+    }
     Window window;
 
     /* event loop */
     while(1){
         input_stream >> current_image;
-        if(mode == CONTROL){
+        if(main_mode == CONTROL){
+            State::behavior->update();
             State::update(current_image);
         }
-        else if(mode == WATCH){
+        else if(main_mode == WATCH) {
             int k1 = waitKey(5);
             int k2 = waitKey(5);
-            if(k1 >= 0)
+            if (k1 >= 0)
                 handle_event(k1);
-            if(k2 != k1 && k2 >= 0)
+            if (k2 != k1 && k2 >= 0)
                 handle_event(k2);
-            if((k1 >= 0 || k2 >= 0) && State::devices.size() > 0){
+            if ((k1 >= 0 || k2 >= 0) && State::devices.size() > 0) {
                 std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
                 State::devices.back()->command_queue.push_back(c);
                 State::devices.back()->command_queue.push_back(c);
             }
             State::update(current_image);
-
         }
 
         cv::Mat final_draw;
@@ -226,57 +239,53 @@ void test_network(){
     manager->send_udp((char *) "goodvibes1067796.local", (char *) "r:::1", 8888);
 }
 
-int main(int argc, char** argv )
+int main(int argc, const char** argv )
 {
+    std::map<std::string, int> config;
+    config["follow"] = FOLLOW;
+    config["hunt"] = PREDATOR_PREY;
+
+    ArgumentParser parser;
+    parser.addArgument("-r", "--run", '*');
+//    parser.addArgument("-w", "--watch");
+//    parser.addArgument("-c", "--camera");
+    parser.parse((size_t)argc, argv);
 
     std::signal(SIGINT, exiting);
     srand (static_cast <unsigned> (time(0)));
-    if (argc > 1 && strcmp(argv[1], "generate-markers") == 0){
+    if (parser.exists("generate-markers")) {
         int count = 50;
-        if(argc > 2){
+        if (argc > 2) {
             count = atoi(argv[2]);
         }
         generate_markers(count);
     }
-    else if (argc > 1 && strcmp(argv[1], "run-tests") == 0){
-
-        if( argc > 3) {
-            Bot *b = new Bot(argv[2]);
-            std::vector<MOTOR> on_commands;
-            std::vector<MOTOR> off_commands;
-            off_commands.push_back(M_LEFT_OFF);
-            off_commands.push_back(M_RIGHT_OFF);
-            on_commands.push_back(M_RIGHT_ON);
-            on_commands.push_back(M_LEFT_ON);
-            if(strcmp(argv[3], "1") == 0){
-                b->apply_motor_commands(on_commands);
-            }
-            else if(strcmp(argv[3], "0") == 0){
-                b->apply_motor_commands(off_commands);
-            }
-        }
-        else{
-            test_network();
-        }
-    }
-    else if(argc > 1 && strcmp(argv[1], "calibrate") == 0){
-        system("gtimeout 2 ./mdns-mod -B");
-        int device_index = 0;
-        if(argc > 2){
-            device_index = atoi(argv[2]);
-        }
-        main_loop(device_index, CONTROL);
-    }
-    else if(argc > 1 && strcmp(argv[1], "watch") == 0) {
-        system("gtimeout 2 ./mdns-mod -B");
-        int device_index = 0;
-        if (argc > 2) {
-            device_index = atoi(argv[2]);
-        }
-        main_loop(device_index, WATCH);
+    else if(strcmp(argv[1], "calibrate_camera") == 0){
+        calibrate_camera_main(argc, argv);
     }
     else{
-        calibrate_camera_main(argc, argv);
+        system("gtimeout 2 ./mdns-mod -B");
+        int device_index = 0;
+
+
+        if(parser.exists("camera")){
+            device_index = parser.retrieve<int>("camera");
+        }
+        if(parser.exists("run")){
+            int sub_mode = 0;
+            vector<string> arg = parser.retrieve<vector<string> >("run");
+            std::string a = arg[0];
+            if(config.count(a) > 0){
+                sub_mode = config[a];
+            }
+            else{
+                std::cout << "unrecognized arg '" + a + "'" << std::endl;
+            }
+            main_loop(device_index, CONTROL, sub_mode);
+        }
+        else if(parser.exists("watch")) {
+            main_loop(device_index, WATCH, 0);
+        }
     }
     return 0;
 }

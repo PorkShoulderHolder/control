@@ -29,20 +29,20 @@ public:
 
     }
     void test_network(){
-        Bot *bot = new Bot("asdasdsa");
-        StateAction s;
-        s.x = 2;
-        s.y = 4;
-        int j = 500;
-        StateAction d = bot->control_action(s);
-        int i;
-        for(i=0; i < j; i++){
-            usleep(10000);
-            s.x = rand() % 10;
-            s.y = rand() % 10;
-            bot->control_action(s);
-        }
-        TS_ASSERT_EQUALS(i, j);
+//        Bot *bot = new Bot("goodvibes1167868.local");
+//        StateAction s;
+//        s.x = 2;
+//        s.y = 4;
+//        int j = 500;
+//        StateAction d = bot->control_action(s);
+//        int i;
+//        for(i=0; i < j; i++){
+//            usleep(10000);
+//            s.x = rand() % 10;
+//            s.y = rand() % 10;
+//            bot->control_action(s);
+//        }
+//        TS_ASSERT_EQUALS(i, j);
 
     }
     void test_agent(){

@@ -19,11 +19,7 @@
 #include <set>
 #include <stdlib.h>
 #include "utils.h"
-
-
-
-
-
+#include "behavior_base.h"
 
 
 /*
@@ -71,6 +67,7 @@ public:
     static int hist_length;
     static std::vector<Bot*> devices;
 	static std::set<int> marker_ids;
+    static Behavior *behavior;
     static cv::Mat current_image;
     static cv::Mat difference_image;
     static std::deque<t_frame> hist;
