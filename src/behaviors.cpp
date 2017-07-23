@@ -18,12 +18,14 @@ FollowTheLeader::FollowTheLeader(cv::Point2f t){
 }
 
 void FollowTheLeader::update() {
-    this->bots[this->bots.size() - 1]->target = State::shared_instance()->target;
+    if(this->bots.size() > 0) {
+        this->bots[this->bots.size() - 1]->target = State::shared_instance()->target;
 
-    for (int i = 0; i < this->bots.size() - 1; ++i) {
-        Bot *b = this->bots[i];
-        Bot *next_b = this->bots[i + 1];
-        b->target = cv::Point2f((float)next_b->state.location[0], (float)next_b->state.location[1]);
+        for (int i = 0; i < this->bots.size() - 1; ++i) {
+            Bot *b = this->bots[i];
+            Bot *next_b = this->bots[i + 1];
+            b->target = cv::Point2f((float) next_b->state.location[0], (float) next_b->state.location[1]);
+        }
     }
 }
 

@@ -128,6 +128,7 @@ State *State::shared_instance(){
         _instance->info_image = cv::Mat::zeros(200,200, CV_8UC3);
         _instance->marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
         std::vector<char *> hosts = Utils::get_device_names_from_file();
+        std::cout << hosts.size() << "djdjdjdj" << std::endl;
         for (char *host : hosts){
             Bot *b  = new Bot(host);
             _instance->devices.push_back(b);
