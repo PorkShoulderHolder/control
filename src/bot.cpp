@@ -14,14 +14,14 @@ Bot::Bot(const char *host){
     this->port = 8888;
     this->aruco_id = NULL;
     this->host = (char *)host;
-    int x_width = 500;
-    int y_width = 500;
+    int x_width = 2;
+    int y_width = 1;
     this->action_memory = 50;
-    int action_count = 4;
+    int action_count = 3;
     const StateActionSpace *sa = new StateActionSpace(x_width, y_width, action_count);
     this->agent = new Agent(*sa);
     this->training = false;
-    this->target = cv::Point2d(250, 250);
+    this->target = cv::Point2d(0, 0);
     this->reached_target_thresh = 3.4f;
     for (int i = 0; i < action_count; ++i) {
         this->info_images.push_back(cv::Mat::zeros(sa->count_x, sa->count_y, CV_32FC3));

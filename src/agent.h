@@ -66,13 +66,13 @@ public:
     void update(StateAction s0, StateAction s1);
 
     StateAction act(StateAction s);
-
     float learning_rate;
     StateAction last_action;
     float discount;
     float eps;
     int experience_points;
-    std::function<float(StateAction, StateActionSpace)> reward;
+    std::function<float(StateAction)> reward;
+    std::function<StateAction(StateAction)> transform;
     StateActionSpace Q;
 
 };

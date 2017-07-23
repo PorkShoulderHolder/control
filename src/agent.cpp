@@ -179,8 +179,7 @@ float default_reward(StateAction s, StateActionSpace sasp){
      * |            |
      * --------------
      */
-    float max_d = sqrtf(powf(sasp.count_x/2, 2) + powf(sasp.count_y/2, 2));
-    return max_d - sqrtf(powf(s.x - (sasp.count_x/2), 2) + powf(s.y - (sasp.count_y/2), 2));
+    return sqrtf(powf(s.x, 2) + powf(s.y, 2));
 }
 
 float boltzmann_decay(int t){
@@ -258,9 +257,8 @@ void Agent::update(StateAction s0, StateAction s1) {
 
     StateAction greedy_option = this->Q.get_greedy_action(s1);
 
-    float gradient = this->reward(s1, this->Q) + this->discount * greedy_option.value - s0.value;
+    float gradient = this->reward(s1) + this->discount * greedy_option.value - s0.value;
     float q0 = s0.value + this->learning_rate * (gradient);
     this->Q.set_action_value(s0, q0);
-    std::cout << this->reward(s1, this->Q) << std::endl;
     this->experience_points++;
 }
