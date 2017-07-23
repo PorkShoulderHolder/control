@@ -11,7 +11,7 @@ class Behavior {
 public:
     Behavior();
     Behavior(std::vector<Bot*> bots);
-    virtual void update();
+    virtual void update(){};
     cv::Point2f target;
     std::vector<Bot*> bots;
 };

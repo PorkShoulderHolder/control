@@ -53,7 +53,8 @@ std::string exec(const char* cmd) {
 }
 
 void exiting(int i){
-    for( Bot *b : State::devices ){
+    State *S = State::shared_instance();
+    for( Bot *b : S->devices ){
         std::vector<MOTOR> off;
         off.push_back(M_RIGHT_OFF);
         off.push_back(M_LEFT_OFF);
@@ -70,9 +71,10 @@ void exiting(int i){
 }
 
 void handle_event(int key){
+    State *S = State::shared_instance();
     Bot *bot;
-    if(State::devices.size() > 0) {
-        bot = State::devices.back();
+    if(S->devices.size() > 0) {
+        bot = S->devices.back();
         bot->training = true;
     }else {
         return;
@@ -190,23 +192,23 @@ void main_loop(int device_index, int main_mode, int sub_mode){
         return;
     }
     init_application();
-    init_state();
+    State *S = State::shared_instance(); // first init
     switch (sub_mode){
         case FOLLOW:
-            State::behavior = new FollowTheLeader();
-            State::behavior->bots = State::devices;
+            S->behavior = new FollowTheLeader();
+            S->behavior->bots = S->devices;
         case PREDATOR_PREY:
-            State::behavior = new PredatorPrey();
-            State::behavior->bots = State::devices;
+//            S->behavior = new PredatorPrey();
+            S->behavior->bots = S->devices;
     }
     Window window;
 
     /* event loop */
     while(1){
+        S = State::shared_instance();
         input_stream >> current_image;
         if(main_mode == CONTROL){
-            State::behavior->update();
-            State::update(current_image);
+            S->update(current_image);
         }
         else if(main_mode == WATCH) {
             int k1 = waitKey(5);
@@ -215,20 +217,20 @@ void main_loop(int device_index, int main_mode, int sub_mode){
                 handle_event(k1);
             if (k2 != k1 && k2 >= 0)
                 handle_event(k2);
-            if ((k1 >= 0 || k2 >= 0) && State::devices.size() > 0) {
+            if ((k1 >= 0 || k2 >= 0) && S->devices.size() > 0) {
                 std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
-                State::devices.back()->command_queue.push_back(c);
-                State::devices.back()->command_queue.push_back(c);
+                S->devices.back()->command_queue.push_back(c);
+                S->devices.back()->command_queue.push_back(c);
             }
-            State::update(current_image);
+            S->update(current_image);
         }
 
         cv::Mat final_draw;
-        cv::resize(State::display_image, final_draw, Size(612, 384));
+        cv::resize(S->display_image, final_draw, Size(612, 384));
         fps_str = update_fps(i);
         cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
         cv::imshow(MAIN_WINDOW, final_draw);
-        cv::imshow(INFO_WINDOW, State::info_image);
+        cv::imshow(INFO_WINDOW, S->info_image);
         if(i == -1) break;
         i++;
     }

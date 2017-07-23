@@ -30,7 +30,6 @@ Bot::Bot(const char *host){
     std::pair<int, int> lr = Utils::get_lr(this->host);
     this->right_command = lr.first;
     this->left_command = lr.second;
-    this->load_info_image();
 }
 
 Bot::~Bot() {
@@ -41,42 +40,13 @@ Bot::~Bot() {
     this->agent->serialize(name);
 }
 
-void Bot::load_info_image(){
-    for(std::vector<StateAction> sas : this->agent->Q){
-        this->set_color(sas);
-    }
-}
-
-void Bot::set_color(std::vector<StateAction> sas) {
-    float max_q = this->agent->Q.max_q;
-    for(StateAction sa : sas){
-        float r = sas[1].value / max_q;
-        float g = sas[2].value / max_q;
-        float b = sas[3].value / max_q;
-        cv::Vec3f rgb(r, g, b);
-        this->info_images[sa.action].at<cv::Vec3f>((int)sa.x, (int)sa.y) = rgb;
-    }
-}
-
-void Bot::set_color(std::vector<StateAction> sas, cv::Vec3f color) {
-    for(StateAction sa : sas){
-        this->info_images[sa.action].at<cv::Vec3f>((int)sa.x, (int)sa.y) = color;
-    }
-}
-
-void Bot::update_image_for_state(StateAction s){
-
-    std::vector<StateAction> sas = this->agent->Q.get_action_values(s);
-    this->set_color(sas, cv::Vec3f(0,0,10));
-}
-
-
 
 StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     /*
      * parameterize target and state in terms of a single reference frame
      *
      */
+    State *S = State::shared_instance();
     StateAction state;
     double dx = location.x - this->target.x;
     double dy = location.y - this->target.y;
@@ -105,33 +75,26 @@ StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     state.y = (float)py;
     cv::Point2d center(200, 200);
     cv::Point2d target(200 + px * 3.5, 200 + py * 3.5);
-    cv::circle(State::display_image, center, 5, cv::Scalar(0,244,0), 5);
-    cv::circle(State::display_image, target, 5, cv::Scalar(0,244,244), 5);
-    cv::line(State::display_image, center, target, cv::Scalar(0,244,0), 5);
+    cv::circle(S->display_image, center, 5, cv::Scalar(0,244,0), 5);
+    cv::circle(S->display_image, target, 5, cv::Scalar(0,244,244), 5);
+    cv::line(S->display_image, center, target, cv::Scalar(0,244,0), 5);
 
     state.action = 0; // to be set later
     return state;
 };
 
-void grid_based_learning(Bot *bot){
-    cv::Point2f px((float)bot->state.location[0], (float)bot->state.location[1]);
-    cv::Point2d rx = bot->state.rotation;
-    StateAction current_state = bot->Q_indices(px, rx);
-
-    if(bot->agent->experience_points == 0){
-
-        bot->agent->update(current_state, current_state);
-    }
-    else{
-
-        bot->agent->update(bot->agent->last_action, current_state);
-        bot->load_info_image();
-        bot->update_image_for_state(current_state);
-    }
-
-    StateAction new_s = bot->agent->act(current_state);
-    std::vector<MOTOR> c = motor_instructions((COMMAND) new_s.action);
-}
+//void grid_based_learning(Bot *bot){
+//    cv::Point2f px((float)bot->state.location[0], (float)bot->state.location[1]);
+//    cv::Point2d rx = bot->state.rotation;
+//    StateAction current_state = bot->Q_indices(px, rx);
+//
+//    if(bot->agent->experience_points == 0){
+//        // TODO:
+//    }
+//
+//    StateAction new_s = bot->agent->act(current_state);
+//    std::vector<MOTOR> c = motor_instructions((COMMAND) new_s.action);
+//}
 
 void Bot::act(){
     /*
@@ -191,15 +154,16 @@ cv::Point2f avg_for_range(std::deque<t_frame> deq, int start, int end, int id){
 }
 
 void Bot::match_movement(int bot_id, int duration) {
-    Bot *b = State::devices[bot_id];
+    State *S = State::shared_instance();
+    Bot *b = S->devices[bot_id];
     int max_id = -1;
 
     double max_d = 0;
-    for(auto id : State::marker_ids) {
-        if(State::hist.size() >= 8){
+    for(auto id : S->marker_ids) {
+        if(S->hist.size() >= 8){
 
-            cv::Point2f p1 = avg_for_range(State::hist, duration/2, duration, id);
-            cv::Point2f p2 = avg_for_range(State::hist, 0, duration/2, id);
+            cv::Point2f p1 = avg_for_range(S->hist, duration/2, duration, id);
+            cv::Point2f p2 = avg_for_range(S->hist, 0, duration/2, id);
             double d = cv::norm(p1 - p2);
             std::cout << d << " ";
             if(d > 0 && d > max_d){
@@ -291,3 +255,10 @@ StateAction Bot::control_action(StateAction state_action) {
     return state_action;
 }
 
+std::string Bot::to_string(){
+    std::string out;
+    out += std::string(this->host) + ", " + std::to_string(this->aruco_id) + " : ";
+    out += this->evasive ? "evasive " : "not evasive";
+    out += ", target= "  + std::to_string(this->target.x) + ", " + std::to_string(this->target.x);
+    return out;
+}

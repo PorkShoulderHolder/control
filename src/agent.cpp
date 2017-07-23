@@ -198,7 +198,7 @@ float boltzmann_decay(int t){
 
 
 
-Agent::Agent(const StateActionSpace &O, std::function<float(StateAction, StateActionSpace)> reward) : Q(O) {
+Agent::Agent(const StateActionSpace &O, std::function<float(StateAction)> reward) : Q(O) {
     int resolution = 50;
     int actions = 4;
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
@@ -277,13 +277,4 @@ void Agent::update(StateAction s0, StateAction s1, StateAction raw) {
     float q0 = s0.value + this->learning_rate * (gradient);
     this->Q.set_action_value(s0, q0);
     this->experience_points++;
-}
-
-StateAction Agent::loop(StateAction raw_state){
-    StateAction s0 = this->transform(raw_state);
-    if(this->state_queue.size() >= LAG){
-        this->update(this->state_queue.front(), s0, raw_state);
-    }
-    raw_state.action = this->act(s0).action;
-    return raw_state;
 }

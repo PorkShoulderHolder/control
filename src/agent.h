@@ -58,7 +58,7 @@ private:
 
 class Agent {
 public:
-    Agent(const StateActionSpace &O, std::function<float(StateAction, StateActionSpace)> reward);
+    Agent(const StateActionSpace &O, std::function<float(StateAction)> reward);
     Agent(const StateActionSpace &O, std::string fn);
     Agent(const StateActionSpace &O);
 
@@ -69,7 +69,6 @@ public:
     float learning_rate;
     float discount;
     float eps;
-    StateAction Agent::loop(StateAction raw_state);
     int experience_points;
     std::function<float(StateAction)> reward;
     std::function<StateAction(StateAction)> transform;

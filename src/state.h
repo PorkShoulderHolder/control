@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include "utils.h"
 #include "behavior_base.h"
+#import "behaviors.h"
 
 
 /*
@@ -47,8 +48,6 @@ struct frame_tasks {
     }
 };
 
-void init_state();
-
 class State{
     /*
      *  - devices: vector of Bot objects, assume nothing about the order
@@ -59,26 +58,33 @@ class State{
      *  - static void schedule_task(task t, int frame_offset): allows us to set up a future task
      *    to be executed frame_offset frames in the future
      */
+    State(){};
+    State(State const&){};             // copy constructor is private
+    State& operator=(State const&){};
+    static State *_instance;
 public:
-
     std::vector<Bot> bots_for_ids(std::vector<char *> hosts, std::vector<int> ids);
-    static void update(cv::Mat image);
-    static void schedule_task(task t, int frame_offset);
-    static int hist_length;
-    static std::vector<Bot*> devices;
-	static std::set<int> marker_ids;
-    static Behavior *behavior;
-    static cv::Mat current_image;
-    static cv::Mat difference_image;
-    static std::deque<t_frame> hist;
-    static std::deque< frame_tasks > task_queue;
-    static cv::Mat display_image;
-    static cv::Mat info_image;
+    void update(cv::Mat image);
+    void schedule_task(task t, int frame_offset);
+    int hist_length;
+    std::vector<Bot*> devices;
+	std::set<int> marker_ids;
+    Behavior *behavior;
+    cv::Mat current_image;
+    cv::Mat difference_image;
+    std::deque<t_frame> hist;
+    std::deque< frame_tasks > task_queue;
+    cv::Mat display_image;
+    cv::Point2f target;
+    cv::Mat info_image;
+
+    static State *shared_instance();
+
 private:
-    static std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >
+    std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >
             update_markers(cv::Mat);
 
-    static cv::aruco::Dictionary marker_dictionary;
+    cv::aruco::Dictionary marker_dictionary;
 };
 
 

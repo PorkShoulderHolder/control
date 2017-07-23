@@ -9,6 +9,7 @@
 
 FollowTheLeader::FollowTheLeader(){
     this->target = cv::Point2f(0,0);
+    std::cout << "new behave" << std::endl;
 }
 
 
@@ -17,7 +18,8 @@ FollowTheLeader::FollowTheLeader(cv::Point2f t){
 }
 
 void FollowTheLeader::update() {
-    this->bots.back()->target = this->target;
+    this->bots[this->bots.size() - 1]->target = State::shared_instance()->target;
+
     for (int i = 0; i < this->bots.size() - 1; ++i) {
         Bot *b = this->bots[i];
         Bot *next_b = this->bots[i + 1];

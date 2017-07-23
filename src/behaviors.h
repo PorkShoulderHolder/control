@@ -17,7 +17,7 @@ class FollowTheLeader : public Behavior{
 public:
     FollowTheLeader();
     FollowTheLeader(cv::Point2f t);
-    void update();
+    virtual void update();
     cv::Point2f target;
 };
 
@@ -26,7 +26,7 @@ public:
     PredatorPrey();
     PredatorPrey(std::vector<Bot *> bots);
     PredatorPrey(std::vector<Bot*> predators, std::vector<Bot*> prey);
-    void update();
+    virtual void update();
     int mode;
     cv::Point2f target;
     std::vector<Bot*> predators;

@@ -15,10 +15,3 @@ Behavior::Behavior(std::vector<Bot*> bots) {
 
 }
 
-
-void Behavior::update() {
-    /*
-     * implement in subclass
-     */
-
-}

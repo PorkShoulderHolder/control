@@ -35,13 +35,9 @@ public:
     ~Bot();
 
     StateAction Q_indices(cv::Point2f location, cv::Point2f rotation);
-    void load_info_image();
-    void set_color(std::vector<StateAction>);
-    void set_color(std::vector<StateAction>, cv::Vec3f);
     void apply_motor_commands( std::vector<MOTOR> );
     void incr_command_queue();
     void act();
-    void update_image_for_state(StateAction s);
     static void match_movement(int, int);
     StateAction control_action(StateAction state_action);
     phys_state state;
@@ -56,6 +52,7 @@ public:
     int left_command;
     int right_command;
     int aruco_id;
+    std::string to_string();
     bool training;
     bool evasive;
     int action_memory;

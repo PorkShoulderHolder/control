@@ -37,7 +37,7 @@ cv::Point2d Utils::getRotationFromQuad(std::vector<cv::Point2f> quad ){
 }
 
 LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads){
-
+    State *S = State::shared_instance();
     if(Utils::distortion_coefs.empty() || Utils::camera_matrix.empty()){
         cv::FileStorage fs("camera_data.xml", cv::FileStorage::READ);
         fs["Distortion_Coefficients"] >> Utils::distortion_coefs;
@@ -54,15 +54,15 @@ LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Poi
         cv::Point2d rot = Utils::getRotationFromQuad(quads[i]);
         rotns.push_back(rot);
         cv::Point2d r(p.x + 20 * rot.x, p.y + 20 * rot.y);
-        cv::circle(State::display_image, p, 10, cv::Scalar(244,244,0), 5);
-        cv::line(State::display_image, p, r, cv::Scalar(0,244,244), 5);
+        cv::circle(S->display_image, p, 10, cv::Scalar(244,244,0), 5);
+        cv::line(S->display_image, p, r, cv::Scalar(0,244,244), 5);
         i++;
     }
 
-    for( Bot *b  : State::devices ){
+    for( Bot *b  : S->devices ){
         cv::Point2d g(8.0f * b->target.x + 800, 8.0f * b->target.y + 800);
 
-        cv::circle(State::display_image, g, 20, cv::Scalar(244, 0, 0), 8);
+        cv::circle(S->display_image, g, 20, cv::Scalar(244, 0, 0), 8);
     }
 
     LocationRotationVec p(locations, rotns);
@@ -190,6 +190,7 @@ cv::Point2f Utils::centroid(std::vector<Bot *> bots){
 std::pair<int, int> Utils::get_lr(char *bot_name){
     std::ifstream setting_file(BOT_SETTINGS_FILE);
     std::string line;
+
     std::string bot_str(bot_name);
     while (std::getline(setting_file, line)) {
         std::stringstream line_stream(line);
@@ -212,16 +213,17 @@ std::pair<int, int> Utils::get_lr(char *bot_name){
 
 bool Utils::begin_match_aruco() {
     //TODO: finish
+    State *S = State::shared_instance();
     int i = 0;
     INIT_SPEED speed = INIT_SPEED_SLOW;
 
-    for( Bot *bot : State::devices ){
-        bot->command_queue = command_seq_for_index(i, (int)State::devices.size(), speed, PATTERN_TYPE_ITER);
+    for( Bot *bot : S->devices ){
+        bot->command_queue = command_seq_for_index(i, (int)S->devices.size(), speed, PATTERN_TYPE_ITER);
         task t;
         t.id = i;
         t.duration = speed;
         t.f = &(Bot::match_movement);
-        State::schedule_task(t, (i + 1 + 2) * speed);
+        S->schedule_task(t, (i + 1 + 2) * speed);
         i++;
     }
 }
