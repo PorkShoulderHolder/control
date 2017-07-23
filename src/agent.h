@@ -63,17 +63,19 @@ public:
     Agent(const StateActionSpace &O);
 
     void serialize(std::string fn);
-    void update(StateAction s0, StateAction s1);
+    void update(StateAction s0, StateAction s1, StateAction raw);
 
     StateAction act(StateAction s);
     float learning_rate;
-    StateAction last_action;
     float discount;
     float eps;
+    StateAction Agent::loop(StateAction raw_state);
     int experience_points;
     std::function<float(StateAction)> reward;
     std::function<StateAction(StateAction)> transform;
     StateActionSpace Q;
+private:
+    std::deque<StateAction> state_queue;
 
 };
 

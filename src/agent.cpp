@@ -9,7 +9,7 @@
  *  ================================ StateActionSpace =================================
  *
  */
-
+#define LAG 5
 
 void StateActionSpace::init(int states, int actions) {
     this->state_count = states;
@@ -112,7 +112,7 @@ std::vector<StateAction> StateActionSpace::get_action_values(int state) {
 }
 
 std::vector<StateAction> StateActionSpace::get_action_values(StateAction s) {
-    return this->get_action_values(s.x, s.y);
+    return this->get_action_values((int)s.x, (int)s.y);
 }
 
 bool state_action_comparator(const StateAction& l, const StateAction& r){
@@ -120,21 +120,21 @@ bool state_action_comparator(const StateAction& l, const StateAction& r){
 };
 
 StateAction StateActionSpace::get_greedy_action(StateAction s) {
-    std::vector<StateAction> sa = this->get_action_values(s.x, s.y);
+    std::vector<StateAction> sa = this->get_action_values((int)s.x, (int)s.y);
     StateAction max_el = *std::max_element(sa.begin(), sa.end(), state_action_comparator);
     return max_el;
 }
 
 
 float StateActionSpace::get_action_value(StateAction s) {
-    return this->get_action_value(s.x, s.y, s.action);
+    return this->get_action_value((int)s.x, (int)s.y, s.action);
 }
 
 StateAction StateActionSpace::get_state_action(StateAction s){
     /*
      * Fills in the Q-value(s) of a StateAction with only action and state components
      */
-    std::vector<StateAction> actions = this->get_action_values(s.x, s.y);
+    std::vector<StateAction> actions = this->get_action_values((int)s.x, (int)s.y);
     return actions[s.action];
 }
 
@@ -157,7 +157,7 @@ void StateActionSpace::set_action_value(int state_x, int state_y, int action, fl
 
 void StateActionSpace::set_action_value(StateAction s, float value) {
 
-    this->set_action_value(s.x, s.y, s.action, value);
+    this->set_action_value((int)s.x, (int)s.y, s.action, value);
 }
 
 /*
@@ -166,7 +166,7 @@ void StateActionSpace::set_action_value(StateAction s, float value) {
  *
  */
 
-float default_reward(StateAction s, StateActionSpace sasp){
+float default_reward(StateAction s){
     /*
      * default reward is euclidean distance from the center of the matrix (max ~ 70)
      * ______________
@@ -180,6 +180,13 @@ float default_reward(StateAction s, StateActionSpace sasp){
      * --------------
      */
     return sqrtf(powf(s.x, 2) + powf(s.y, 2));
+}
+
+StateAction default_transform(StateAction s){
+    StateAction o = s;
+    o.y = 0;
+    o.x = s.x > 0 ? 1 : 0;
+    return o;
 }
 
 float boltzmann_decay(int t){
@@ -197,7 +204,9 @@ Agent::Agent(const StateActionSpace &O, std::function<float(StateAction, StateAc
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;
     this->reward = reward;
-    this->learning_rate = 1.0f;
+    this->learning_rate = 0.1f;
+    this->transform = default_transform;
+
     this->discount = 0.5f;
     this->eps = 0.1f;
     this->experience_points = 0;
@@ -209,7 +218,8 @@ Agent::Agent(const StateActionSpace &O) : Q(O) {
     StateActionSpace *sa = new StateActionSpace(resolution, resolution, actions);
     this->Q = *sa;
     this->reward = default_reward;
-    this->learning_rate = 1.0f;
+    this->transform = default_transform;
+    this->learning_rate = 0.1f;
     this->discount = 0.5f;
     this->eps = 0.1f;
     this->experience_points = 0;
@@ -218,8 +228,10 @@ Agent::Agent(const StateActionSpace &O) : Q(O) {
 Agent::Agent(const StateActionSpace &O, std::string fn) : Q(O) {
     StateActionSpace *sa = new StateActionSpace(fn);
     this->Q = *sa;
+    this->transform = default_transform;
+
     this->reward = default_reward;
-    this->learning_rate = 1.0f;
+    this->learning_rate = 0.1f;
     this->discount = 0.84f;
     this->eps = 0.1f;
     this->experience_points = 0;
@@ -240,11 +252,15 @@ StateAction Agent::act(StateAction s){
     else{
         a = this->Q.get_greedy_action(s);
     }
-    this->last_action = a;
+    this->state_queue.push_back(a);
+    if(this->state_queue.size() > LAG){
+        this->state_queue.pop_front();
+    }
+
     return a;
 }
 
-void Agent::update(StateAction s0, StateAction s1) {
+void Agent::update(StateAction s0, StateAction s1, StateAction raw) {
     /*
      * This function performs the crucial update step of the agent's Q-matrix;
      *
@@ -257,8 +273,17 @@ void Agent::update(StateAction s0, StateAction s1) {
 
     StateAction greedy_option = this->Q.get_greedy_action(s1);
 
-    float gradient = this->reward(s1) + this->discount * greedy_option.value - s0.value;
+    float gradient = (this->reward(raw) + this->discount * greedy_option.value) - s0.value;
     float q0 = s0.value + this->learning_rate * (gradient);
     this->Q.set_action_value(s0, q0);
     this->experience_points++;
+}
+
+StateAction Agent::loop(StateAction raw_state){
+    StateAction s0 = this->transform(raw_state);
+    if(this->state_queue.size() >= LAG){
+        this->update(this->state_queue.front(), s0, raw_state);
+    }
+    raw_state.action = this->act(s0).action;
+    return raw_state;
 }
