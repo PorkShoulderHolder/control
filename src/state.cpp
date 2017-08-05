@@ -25,6 +25,58 @@ std::vector<Bot> State::bots_for_ids(std::vector<char *> hosts, std::vector<int>
 }
 
 
+void State::update_obstacle_bitmap(){
+    float ratio = (float)this->current_image.rows / (float)this->current_image.cols;
+    cv::Mat mat;
+
+    cv::resize(this->current_image, mat, cv::Size((int)(45.0f / ratio), 45));
+    cv::cvtColor(mat, mat, CV_RGB2GRAY);
+    mat.convertTo(mat, CV_32FC1);
+    cv::GaussianBlur( mat, mat,Size(3,3), 0, 0, BORDER_DEFAULT );
+    cv::Laplacian( mat, mat, CV_8U, 3, 1, 0, BORDER_DEFAULT );
+    cv::threshold(mat, mat, 15.0f, 255, CV_THRESH_BINARY);
+    cv::accumulateWeighted(mat, this->obstacle_avg, 0.1);
+    cv::threshold(this->obstacle_avg, mat, 15.0f, 255, CV_THRESH_BINARY);
+
+    cv::Mat erode_element = getStructuringElement( MORPH_ELLIPSE, Size( 2, 2 ));
+    cv::Mat dilate_element = getStructuringElement( MORPH_ELLIPSE, Size( 6, 6 ));
+
+    cv::erode(mat, mat, erode_element);
+    cv::dilate(mat, mat, dilate_element);
+    if(this->obstacle_bitmap.rows > 0){
+         cv::findNonZero(this->obstacle_bitmap - mat, this->obstacle_difference);
+    }
+    this->obstacle_bitmap = mat;
+}
+
+void State::update_paths(){
+    for(int i = 0; i < this->obstacle_difference.total(); i++){
+        int x = this->obstacle_difference.at<cv::Point>(i).x;
+        int y = this->obstacle_difference.at<cv::Point>(i).y;
+        float value = this->obstacle_bitmap.at(x, y);
+        this->pathfinder->updateCell(x, y, value);
+    }
+}
+
+void State::initialize_pathfinder(){
+    int sx = this->obstacle_bitmap.cols;
+    int sy = this->obstacle_bitmap.rows;
+
+    // TODO: scale these coordinates correctly => this is WRONG!
+    int tx = (int)this->target.x;
+    int ty = (int)this->target.y;
+    this->pathfinder->init(sx, sy, tx, ty);
+    for(int x = 0; x < this->obstacle_bitmap.cols; x++){
+        for (int y = 0; y < this->obstacle_bitmap.rows; ++y) {
+            float val = this->obstacle_bitmap.at(x, y);
+            this->pathfinder->updateCell(x, y, val);
+        }
+    }
+
+}
+
+
+
 LocationRotationMap State::update_markers(cv::Mat image){
     vector< int > ids;
     vector< vector<Point2f> > marker_corners, rejected;
@@ -105,11 +157,11 @@ void State::update(cv::Mat image) {
     for( Bot *b : this->devices ){
         b->incr_command_queue();
         if(b->training){
-            this->info_image = cv::Mat::zeros(200,200, CV_8UC3);
+            this->obstacle_bitmap = cv::Mat::zeros(200,200, CV_8UC3);
             cv::Point2d p(2 * (-1 * b->current_state.x + 50), 2 * (-1 * b->current_state.y + 50));
             cv::Point2d r(100, 100);
-            cv::circle(this->info_image, p, 10, cv::Scalar(244,244,0), 5);
-            cv::line(this->info_image, p, r, cv::Scalar(0,244,244), 5);
+            cv::circle(this->obstacle_bitmap, p, 10, cv::Scalar(244,244,0), 5);
+            cv::line(this->obstacle_bitmap, p, r, cv::Scalar(0,244,244), 5);
         }
     }
 
@@ -134,7 +186,7 @@ State *State::shared_instance(){
             _instance->devices.push_back(b);
         }
         Utils::begin_match_aruco();
-
+        _instance->pathfinder = new Dstar();
     }
     return _instance;
 };

@@ -18,6 +18,7 @@
 #include <vector>
 #include <set>
 #include <stdlib.h>
+#include "d_star.h"
 #include "utils.h"
 #include "behavior_base.h"
 #import "behaviors.h"
@@ -66,24 +67,29 @@ public:
     std::vector<Bot> bots_for_ids(std::vector<char *> hosts, std::vector<int> ids);
     void update(cv::Mat image);
     void schedule_task(task t, int frame_offset);
+    void update_obstacle_bitmap(void);
+    void update_paths(void);
+    void initialize_pathfinder(void);
     int hist_length;
     std::vector<Bot*> devices;
 	std::set<int> marker_ids;
     Behavior *behavior;
     cv::Mat current_image;
-    cv::Mat difference_image;
+    cv::Mat obstacle_bitmap;
+    cv::Mat obstacle_avg;
     std::deque<t_frame> hist;
     std::deque< frame_tasks > task_queue;
     cv::Mat display_image;
     cv::Point2f target;
     cv::Mat info_image;
-
+    cv::Mat obstacle_difference;
     static State *shared_instance();
 
 private:
     std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >
             update_markers(cv::Mat);
 
+    Dstar *pathfinder;
     cv::aruco::Dictionary marker_dictionary;
 };
 

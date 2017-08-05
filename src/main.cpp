@@ -208,32 +208,11 @@ void main_loop(int device_index, int main_mode, int sub_mode){
         S = State::shared_instance();
         input_stream >> current_image;
         if(i > 100){
-            float ratio = (float)current_image.rows / (float)current_image.cols;
-            cv::Mat local;
-            cv::resize(current_image,local, cv::Size((int)(45.0f / ratio), 45));
-            cv::cvtColor(local, local, CV_RGB2GRAY);
-            local.convertTo( S->info_image, CV_32FC1);
-            cv::GaussianBlur( local, local,Size(3,3), 0, 0, BORDER_DEFAULT );
 
-            cv::Laplacian( local, local, CV_8U, 3, 1, 0, BORDER_DEFAULT );
-            cv::threshold(local, local, 15.0f, 255, CV_THRESH_BINARY);
+            S->update_obstacle_bitmap();
+            float ratio = (float)S->current_image.rows / (float)S->current_image.cols;
 
-            cv::accumulateWeighted(local, S->info_image, 0.01);
-//            cv::threshold(S->info_image, S->info_image, 15.0f, 255, CV_THRESH_BINARY);
-//
-//            Mat erode_element = getStructuringElement( MORPH_ELLIPSE,
-//                                                 Size( 2, 2 ));
-//
-//            Mat dilate_element = getStructuringElement( MORPH_ELLIPSE,
-//                                                 Size( 6, 6 ));
-//            cv::erode(S->info_image, S->info_image, erode_element);
-//            cv::dilate(S->info_image, S->info_image, dilate_element);
-//
-//
-//
-//
-
-            cv::resize(S->info_image, S->info_image, cv::Size((int)(200.0f / ratio), 200) ,0,0, INTER_NEAREST);
+            cv::resize(S->obstacle_bitmap, S->info_image, cv::Size((int)(200.0f / ratio), 200) ,0,0, INTER_NEAREST);
             cv::imshow(INFO_WINDOW, S->info_image);
 
         }
