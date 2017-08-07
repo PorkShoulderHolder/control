@@ -68,7 +68,7 @@ public:
     void update(cv::Mat image);
     void schedule_task(task t, int frame_offset);
     void update_obstacle_bitmap(void);
-    void update_paths(void);
+    std::list<state> update_paths(void);
     void initialize_pathfinder(void);
     int hist_length;
     std::vector<Bot*> devices;

@@ -49,13 +49,14 @@ void State::update_obstacle_bitmap(){
     this->obstacle_bitmap = mat;
 }
 
-void State::update_paths(){
+std::list<state> State::update_paths(){
     for(int i = 0; i < this->obstacle_difference.total(); i++){
         int x = this->obstacle_difference.at<cv::Point>(i).x;
         int y = this->obstacle_difference.at<cv::Point>(i).y;
         float value = this->obstacle_bitmap.at(x, y);
         this->pathfinder->updateCell(x, y, value);
     }
+    return this->pathfinder->getPath();
 }
 
 void State::initialize_pathfinder(){
