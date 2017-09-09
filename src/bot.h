@@ -8,6 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include <deque>
 #include "agent.h"
+#include "d_star.h"
 
 enum MOTOR{
     M_RIGHT_OFF = 0,
@@ -28,6 +29,8 @@ struct phys_state{
     cv::Vec3d velocity;
     cv::Point2d rotation;
 };
+
+typedef state dstar_state;
 
 class Bot {
 public:
@@ -57,13 +60,17 @@ public:
     bool evasive;
     int action_memory;
     Agent *agent;
+    void initialize_pathfinder(cv::Mat &m);
+    std::list<dstar_state> update_paths(cv::Mat &od, cv::Mat &ob);
 private:
     int port;
     std::string send_state(StateAction sa);
     float reached_target_thresh;
     std::deque<std::pair<StateAction, long int> > past_state_actions;
-
+    Dstar *pathfinder;
 };
+
+
 
 
 #endif //CONTROL_BOT_H

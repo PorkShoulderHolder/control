@@ -73,7 +73,6 @@ void State::initialize_pathfinder(){
             this->pathfinder->updateCell(x, y, val);
         }
     }
-
 }
 
 

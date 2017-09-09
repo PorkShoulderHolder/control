@@ -7,7 +7,8 @@
 #include "state.h"
 
 #define TIME_CONCAT 1498414000000
-const char *M_COMMAND_STR[4] = { "r:::0", "l:::0", "r:::1", "l:::1"};
+
+const char *M_COMMAND_STR[4] = { "r:::0", "l:::0", "r:::1", "l:::1" };
 
 
 Bot::Bot(const char *host){
@@ -30,7 +31,35 @@ Bot::Bot(const char *host){
     std::pair<int, int> lr = Utils::get_lr(this->host);
     this->right_command = lr.first;
     this->left_command = lr.second;
+    this->pathfinder = new Dstar();
 }
+
+void Bot::initialize_pathfinder(cv::Mat &obstacle_bitmap){
+    int sx = obstacle_bitmap.cols;
+    int sy = obstacle_bitmap.rows;
+
+    // TODO: scale these coordinates correctly => this is WRONG!
+    int tx = (int)this->target.x;
+    int ty = (int)this->target.y;
+    this->pathfinder->init(sx, sy, tx, ty);
+    for(int x = 0; x < obstacle_bitmap.cols; x++){
+        for (int y = 0; y < obstacle_bitmap.rows; ++y) {
+            float val = obstacle_bitmap.at(x, y);
+            this->pathfinder->updateCell(x, y, val);
+        }
+    }
+}
+
+std::list<dstar_state> Bot::update_paths(cv::Mat &obstacle_difference, cv::Mat &obstacle_bitmap){
+    for(int i = 0; i < obstacle_difference.total(); i++){
+        int x = obstacle_difference.at<cv::Point>(i).x;
+        int y = obstacle_difference.at<cv::Point>(i).y;
+        float value = obstacle_bitmap.at(x, y);
+        this->pathfinder->updateCell(x, y, value);
+    }
+    return this->pathfinder->getPath();
+}
+
 
 Bot::~Bot() {
     std::string id = std::to_string(this->aruco_id);
