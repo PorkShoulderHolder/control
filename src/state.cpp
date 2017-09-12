@@ -53,7 +53,7 @@ std::list<state> State::update_paths(){
     for(int i = 0; i < this->obstacle_difference.total(); i++){
         int x = this->obstacle_difference.at<cv::Point>(i).x;
         int y = this->obstacle_difference.at<cv::Point>(i).y;
-        float value = this->obstacle_bitmap.at(x, y);
+        float value = this->obstacle_bitmap.at<uchar>(x, y);
         this->pathfinder->updateCell(x, y, value);
     }
     return this->pathfinder->getPath();
@@ -69,7 +69,7 @@ void State::initialize_pathfinder(){
     this->pathfinder->init(sx, sy, tx, ty);
     for(int x = 0; x < this->obstacle_bitmap.cols; x++){
         for (int y = 0; y < this->obstacle_bitmap.rows; ++y) {
-            float val = this->obstacle_bitmap.at(x, y);
+            float val = this->obstacle_bitmap.at<uchar>(x, y);
             this->pathfinder->updateCell(x, y, val);
         }
     }
@@ -157,11 +157,11 @@ void State::update(cv::Mat image) {
     for( Bot *b : this->devices ){
         b->incr_command_queue();
         if(b->training){
-            this->obstacle_bitmap = cv::Mat::zeros(200,200, CV_8UC3);
+            this->info_image = cv::Mat::zeros(200,200, CV_8UC1);
             cv::Point2d p(2 * (-1 * b->current_state.x + 50), 2 * (-1 * b->current_state.y + 50));
             cv::Point2d r(100, 100);
-            cv::circle(this->obstacle_bitmap, p, 10, cv::Scalar(244,244,0), 5);
-            cv::line(this->obstacle_bitmap, p, r, cv::Scalar(0,244,244), 5);
+            cv::circle(this->info_image, p, 10, cv::Scalar(244,244,0), 5);
+            cv::line(this->info_image, p, r, cv::Scalar(0,244,244), 5);
         }
     }
 
@@ -171,7 +171,6 @@ void State::update(cv::Mat image) {
     }
 
 }
-
 
 State *State::shared_instance(){
     if(!_instance){
@@ -187,6 +186,27 @@ State *State::shared_instance(){
         }
         Utils::begin_match_aruco();
         _instance->pathfinder = new Dstar();
+    }
+    return _instance;
+};
+
+State *State::shared_instance(bool visual){
+    if(!_instance){
+        _instance = new State;
+        _instance->hist_length = 20;
+        _instance->info_image = cv::Mat::zeros(200,200, CV_8UC3);
+        _instance->marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+        _instance->visual = visual;
+        std::vector<char *> hosts = Utils::get_device_names_from_file();
+        std::cout << hosts.size() << "djdjdjdj" << std::endl;
+        for (char *host : hosts){
+            Bot *b  = new Bot(host);
+            _instance->devices.push_back(b);
+        }
+        if(_instance->visual){
+            Utils::begin_match_aruco();
+            _instance->pathfinder = new Dstar();
+        }
     }
     return _instance;
 };

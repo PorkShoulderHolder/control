@@ -5,7 +5,6 @@
 #include "bot.h"
 #include "network_manager.h"
 #include "state.h"
-
 #define TIME_CONCAT 1498414000000
 
 const char *M_COMMAND_STR[4] = { "r:::0", "l:::0", "r:::1", "l:::1" };
@@ -44,7 +43,7 @@ void Bot::initialize_pathfinder(cv::Mat &obstacle_bitmap){
     this->pathfinder->init(sx, sy, tx, ty);
     for(int x = 0; x < obstacle_bitmap.cols; x++){
         for (int y = 0; y < obstacle_bitmap.rows; ++y) {
-            float val = obstacle_bitmap.at(x, y);
+            float val = obstacle_bitmap.at<uchar>(x, y);
             this->pathfinder->updateCell(x, y, val);
         }
     }
@@ -54,7 +53,7 @@ std::list<dstar_state> Bot::update_paths(cv::Mat &obstacle_difference, cv::Mat &
     for(int i = 0; i < obstacle_difference.total(); i++){
         int x = obstacle_difference.at<cv::Point>(i).x;
         int y = obstacle_difference.at<cv::Point>(i).y;
-        float value = obstacle_bitmap.at(x, y);
+        float value = obstacle_bitmap.at<uchar>(x, y);
         this->pathfinder->updateCell(x, y, value);
     }
     return this->pathfinder->getPath();
@@ -141,6 +140,8 @@ void Bot::act(){
     std::vector<MOTOR> c = motor_instructions((COMMAND) new_s.action);
     this->apply_motor_commands(c);
 }
+
+
 
 void Bot::incr_command_queue() {
     /*

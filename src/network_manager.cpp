@@ -80,7 +80,7 @@ char* NetworkManager::send_tcp(char *hostname, char *msg, int port, char* buf) {
     server = gethostbyname(hostname);
     if (server == NULL) {
         fprintf(stdout,"ERROR, no such host as %s\n", hostname);
-        return false;
+        return buf;
     }
 
     /* build the server's Internet address */

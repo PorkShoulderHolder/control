@@ -84,12 +84,15 @@ public:
     cv::Mat info_image;
     cv::Mat obstacle_difference;
     static State *shared_instance();
+    static State *shared_instance(bool visual);
 
-private:
+
+        private:
     std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >
             update_markers(cv::Mat);
 
     Dstar *pathfinder;
+    bool visual;
     cv::aruco::Dictionary marker_dictionary;
 };
 

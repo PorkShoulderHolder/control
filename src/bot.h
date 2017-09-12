@@ -10,6 +10,7 @@
 #include "agent.h"
 #include "d_star.h"
 
+
 enum MOTOR{
     M_RIGHT_OFF = 0,
     M_LEFT_OFF = 1,
@@ -62,8 +63,8 @@ public:
     Agent *agent;
     void initialize_pathfinder(cv::Mat &m);
     std::list<dstar_state> update_paths(cv::Mat &od, cv::Mat &ob);
-private:
     int port;
+private:
     std::string send_state(StateAction sa);
     float reached_target_thresh;
     std::deque<std::pair<StateAction, long int> > past_state_actions;
