@@ -19,3 +19,4 @@ read.py
 *.pyc
 
 data.json
+Makefile
