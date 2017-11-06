@@ -84,7 +84,7 @@ private:
     std::pair<std::unordered_map<int, cv::Vec3d>, std::unordered_map<int, cv::Vec3d> >
             update_markers(cv::Mat);
 
-    cv::aruco::Dictionary marker_dictionary;
+    cv::Ptr<cv::aruco::Dictionary> marker_dictionary;
 };
 
 

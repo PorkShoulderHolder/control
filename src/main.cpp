@@ -18,6 +18,12 @@
 #include "argparse.hpp"
 #include "behaviors.h"
 
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
 
 #define DEBUG false
 #define CONTROL 0
@@ -28,6 +34,7 @@
 #define RIGHT_ARROW_KEY 63235
 #define LEFT_ARROW_KEY 63234
 #define TOP_ARROW_KEY 63232
+#define BOT_PREFIX "goodvibes"
 
 using namespace cv;
 using namespace std;
@@ -133,7 +140,7 @@ void handle_event(int key){
 
 void generate_markers(int count){
     cv::Mat markerImage; 
-    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_1000);
+    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_1000);
     int i;
 
     const int width = (int)sqrt(count);
@@ -266,9 +273,24 @@ void main_loop(int device_index, int main_mode, int sub_mode){
 }
 
 void test_network(){
-    NetworkManager *manager = new NetworkManager();
+    auto *manager = new NetworkManager();
     manager->send_udp((char *) "goodvibes1067796.local", (char *) "r:::1", 8888);
 }
+#ifdef __linux__
+
+std::string exec_cmd(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (!feof(pipe.get())) {
+        if (fgets(buffer.data(), 128, pipe.get()) != nullptr){
+            result += buffer.data();
+        }
+    }
+    return result;
+}
+#endif
 
 int main(int argc, const char** argv )
 {
@@ -295,7 +317,27 @@ int main(int argc, const char** argv )
         calibrate_camera_main(argc, argv);
     }
     else{
+
+#ifdef __APPLE__
         system("gtimeout 2 ./mdns-mod -B");
+#elif __linux__
+        std::string out = exec_cmd("timeout 2 mdns-scan");
+        std::cout << out << std::endl;
+        std::cout << "dddddddd" << std::endl;
+        std::stringstream iss(out);
+        for (std::string line; std::getline(iss, line); )
+        {
+
+            unsigned long loc = line.find(BOT_PREFIX);
+            if(loc != std::string::npos){
+                unsigned long i = line.find(".");
+                std::string device_name = line.substr(0, i);
+                FILE *f = fopen("domains.txt", "a");
+                fprintf(f, "%s.local\n", device_name);
+                fclose(f);
+            }
+        }
+#endif
         int device_index = 0;
 
 
@@ -304,7 +346,7 @@ int main(int argc, const char** argv )
         }
         if(parser.exists("run")){
             int sub_mode = 0;
-            vector<string> arg = parser.retrieve<vector<string> >("run");
+            vector<string> arg = parser.retrieve<vector<string>>("run");
             std::string a = arg[0];
             if(config.count(a) > 0){
                 sub_mode = config[a];

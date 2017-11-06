@@ -28,7 +28,7 @@ std::vector<Bot> State::bots_for_ids(std::vector<char *> hosts, std::vector<int>
 LocationRotationMap State::update_markers(cv::Mat image){
     vector< int > ids;
     vector< vector<Point2f> > marker_corners, rejected;
-    cv::aruco::DetectorParameters parameters;
+    cv::Ptr<cv::aruco::DetectorParameters> parameters;
     cv::aruco::detectMarkers(image, this->marker_dictionary, marker_corners, ids, parameters, rejected);
     std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > normal_pos = Utils::compute_ground_plane(marker_corners);
     std::vector<cv::Vec3d> locations = normal_pos.first;

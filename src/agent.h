@@ -11,6 +11,8 @@
 #include <iostream>
 #include <stdlib.h>
 #include <unordered_map>
+#include <functional>
+#include <algorithm>
 
 #ifndef CONTROL_AGENT_H
 #define CONTROL_AGENT_H
