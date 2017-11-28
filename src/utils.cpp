@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "state.h"
 #define DEVICE_FILE "domains.txt"
-#define CAMERA_PARAMS_FILE "camera_data.xml"
+#define CAMERA_PARAMS_FILE "configuration_files/setting.xml"
 
 
 
@@ -39,7 +39,7 @@ cv::Point2d Utils::getRotationFromQuad(std::vector<cv::Point2f> quad ){
 LocationRotationVec Utils::compute_ground_plane(std::vector< std::vector<cv::Point2f> > quads){
     State *S = State::shared_instance();
     if(Utils::distortion_coefs.empty() || Utils::camera_matrix.empty()){
-        cv::FileStorage fs("camera_data.xml", cv::FileStorage::READ);
+        cv::FileStorage fs(CAMERA_PARAMS_FILE, cv::FileStorage::READ);
         fs["Distortion_Coefficients"] >> Utils::distortion_coefs;
         fs["Camera_Matrix"] >> Utils::camera_matrix;
     }

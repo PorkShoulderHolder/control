@@ -179,8 +179,6 @@ void Bot::match_movement(int bot_id, int duration) {
 void Bot::apply_motor_commands(std::vector<MOTOR> commands) {
     NetworkManager *manager = new NetworkManager();
     for (int i = 0; i < 2; i++){
-        std::cout << this->host << std::endl;
-
         manager->send_udp(this->host, (char *) M_COMMAND_STR[commands[i]], this->port);
     }
     COMMAND command_ = command_code(commands);

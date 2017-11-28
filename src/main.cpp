@@ -159,7 +159,8 @@ void generate_markers(int count){
       markerImage.copyTo(display_image(r));
       cv::putText(display_image, s, p, 1, 1, cv::Scalar(0, 0, 0), 1); 
     }
-    cv::imshow("d", display_image);
+    cv::imshow(MAIN_WINDOW, display_image);
+    cv::waitKey(10000);
 }
 
 void init_application(){
@@ -189,6 +190,7 @@ std::string update_fps(int i){
 
 void main_loop(int device_index, int main_mode, int sub_mode){
     cv::Point text_loc(20, 20);
+
     cv::Mat current_image;
     int i = 1;
     std::string fps_str = "0 fps";
@@ -214,10 +216,13 @@ void main_loop(int device_index, int main_mode, int sub_mode){
     while(1){
         S = State::shared_instance();
         input_stream >> current_image;
-        if(i > 100){
+        i++;
+        cv::waitKey(10);
+        if(i > 20){
             float ratio = (float)current_image.rows / (float)current_image.cols;
+            float s = 85.0f;
             cv::Mat local;
-            cv::resize(current_image,local, cv::Size((int)(45.0f / ratio), 45));
+            cv::resize(current_image,local, cv::Size((int)(s / ratio), (int)s));
             cv::cvtColor(local, local, CV_RGB2GRAY);
             local.convertTo( S->info_image, CV_32FC1);
             cv::GaussianBlur( local, local,Size(3,3), 0, 0, BORDER_DEFAULT );
@@ -226,49 +231,43 @@ void main_loop(int device_index, int main_mode, int sub_mode){
             cv::threshold(local, local, 15.0f, 255, CV_THRESH_BINARY);
 
             cv::accumulateWeighted(local, S->info_image, 0.01);
+
 //            cv::threshold(S->info_image, S->info_image, 15.0f, 255, CV_THRESH_BINARY);
-//
-//            Mat erode_element = getStructuringElement( MORPH_ELLIPSE,
-//                                                 Size( 2, 2 ));
-//
-//            Mat dilate_element = getStructuringElement( MORPH_ELLIPSE,
-//                                                 Size( 6, 6 ));
+//            Mat erode_element = getStructuringElement( MORPH_ELLIPSE, Size( 2, 2 ));
+//            Mat dilate_element = getStructuringElement( MORPH_ELLIPSE, Size( 6, 6 ));
 //            cv::erode(S->info_image, S->info_image, erode_element);
 //            cv::dilate(S->info_image, S->info_image, dilate_element);
-//
-//
-//
-//
 
             cv::resize(S->info_image, S->info_image, cv::Size((int)(200.0f / ratio), 200) ,0,0, INTER_NEAREST);
             cv::imshow(INFO_WINDOW, S->info_image);
 
-        }
-        if(main_mode == CONTROL){
-            S->update(current_image);
-        }
-        else if(main_mode == WATCH) {
-            int k1 = waitKey(5);
-            int k2 = waitKey(5);
-            if (k1 >= 0)
-                handle_event(k1);
-            if (k2 != k1 && k2 >= 0)
-                handle_event(k2);
-            if ((k1 >= 0 || k2 >= 0) && S->devices.size() > 0) {
-                std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
-                S->devices.back()->command_queue.push_back(c);
-                S->devices.back()->command_queue.push_back(c);
-            }
-            S->update(current_image);
-        }
 
-        cv::Mat final_draw;
-        cv::resize(S->display_image, final_draw, Size(612, 384));
-        fps_str = update_fps(i);
-        cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
-        cv::imshow(MAIN_WINDOW, final_draw);
-        if(i == -1) break;
-        i++;
+            if(main_mode == CONTROL){
+                S->update(current_image);
+            }
+            else if(main_mode == WATCH) {
+                int k1 = waitKey(5);
+                int k2 = waitKey(5);
+                if (k1 >= 0)
+                    handle_event(k1);
+                if (k2 != k1 && k2 >= 0)
+                    handle_event(k2);
+                if ((k1 >= 0 || k2 >= 0) && S->devices.size() > 0) {
+                    std::vector<MOTOR> c = motor_instructions(C_BOTH_OFF);
+                    S->devices.back()->command_queue.push_back(c);
+                    S->devices.back()->command_queue.push_back(c);
+                }
+
+                S->update(current_image);
+            }
+
+            cv::Mat final_draw;
+            cv::resize(S->display_image, final_draw, Size(612, 384));
+            fps_str = update_fps(i);
+            cv::putText(final_draw, fps_str, text_loc, 1, 1, cv::Scalar(155, 155, 0), 1);
+            cv::imshow(MAIN_WINDOW, final_draw);
+            if(i == -1) break;
+            }
     }
 }
 
@@ -278,18 +277,22 @@ void test_network(){
 }
 #ifdef __linux__
 
-std::string exec_cmd(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    while (!feof(pipe.get())) {
-        if (fgets(buffer.data(), 128, pipe.get()) != nullptr){
-            result += buffer.data();
-        }
+string get_stdout(string cmd) {
+    string data;
+    FILE * stream;
+    const int max_buffer = 256;
+    char buffer[max_buffer];
+    cmd.append(" 2>&1");
+
+    stream = popen(cmd.c_str(), "r");
+    if (stream) {
+        while (!feof(stream))
+            if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+        pclose(stream);
     }
-    return result;
+    return data;
 }
+
 #endif
 
 int main(int argc, const char** argv )
@@ -302,6 +305,8 @@ int main(int argc, const char** argv )
     parser.addArgument("-r", "--run", '*');
 //    parser.addArgument("-w", "--watch");
 //    parser.addArgument("-c", "--camera");
+//    parser.addArgument("-g", "--generate-markers");
+
     parser.parse((size_t)argc, argv);
 
     std::signal(SIGINT, exiting);
@@ -311,9 +316,11 @@ int main(int argc, const char** argv )
         if (argc > 2) {
             count = atoi(argv[2]);
         }
+        init_application();
         generate_markers(count);
     }
-    else if(strcmp(argv[1], "calibrate_camera") == 0){
+    else
+    if(strcmp(argv[1], "calibrate_camera") == 0){
         calibrate_camera_main(argc, argv);
     }
     else{
@@ -321,22 +328,27 @@ int main(int argc, const char** argv )
 #ifdef __APPLE__
         system("gtimeout 2 ./mdns-mod -B");
 #elif __linux__
-        std::string out = exec_cmd("timeout 2 mdns-scan");
+        std::string out = get_stdout("timeout 2 mdns-scan");
         std::cout << out << std::endl;
-        std::cout << "dddddddd" << std::endl;
+        std::replace(out.begin(), out.end(), '\n', ' ');
         std::stringstream iss(out);
-        for (std::string line; std::getline(iss, line); )
+        vector<string> s_array;
+        string temp;
+        while (iss >> temp)
+            s_array.push_back(temp); //
+        for (std::string line : s_array)
         {
-
+            string linecpy = line;
             unsigned long loc = line.find(BOT_PREFIX);
             if(loc != std::string::npos){
-                unsigned long i = line.find(".");
+                unsigned long i = linecpy.find('.');
                 std::string device_name = line.substr(0, i);
-                FILE *f = fopen("domains.txt", "a");
-                fprintf(f, "%s.local\n", device_name);
+                FILE *f = fopen("domains.txt", "w+");
+                fprintf(f, "%s.local\n", device_name.c_str());
                 fclose(f);
             }
         }
+
 #endif
         int device_index = 0;
 
@@ -348,13 +360,17 @@ int main(int argc, const char** argv )
             int sub_mode = 0;
             vector<string> arg = parser.retrieve<vector<string>>("run");
             std::string a = arg[0];
+            int device = device_index;
+            if(arg.size() > 1){
+                device = atoi(arg[1].c_str());
+            }
             if(config.count(a) > 0){
                 sub_mode = config[a];
             }
             else{
                 std::cout << "unrecognized arg '" + a + "'" << std::endl;
             }
-            main_loop(device_index, CONTROL, sub_mode);
+            main_loop(device, CONTROL, sub_mode);
         }
         else if(parser.exists("watch")) {
             main_loop(device_index, WATCH, 0);

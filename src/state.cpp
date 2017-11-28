@@ -29,7 +29,8 @@ LocationRotationMap State::update_markers(cv::Mat image){
     vector< int > ids;
     vector< vector<Point2f> > marker_corners, rejected;
     cv::Ptr<cv::aruco::DetectorParameters> parameters;
-    cv::aruco::detectMarkers(image, this->marker_dictionary, marker_corners, ids, parameters, rejected);
+
+    cv::aruco::detectMarkers(image, this->marker_dictionary, marker_corners, ids);
     std::pair<std::vector<cv::Vec3d>, std::vector<cv::Point2d> > normal_pos = Utils::compute_ground_plane(marker_corners);
     std::vector<cv::Vec3d> locations = normal_pos.first;
     std::vector<cv::Point2d> rotations = normal_pos.second;
@@ -85,6 +86,7 @@ void State::schedule_task(task t, int frame_offset) {
 }
 
 void State::update(cv::Mat image) {
+
     this->display_image = image;
     this->current_image = image;
     if(this->hist.size() >= this->hist_length){
@@ -128,7 +130,7 @@ State *State::shared_instance(){
         _instance->info_image = cv::Mat::zeros(200,200, CV_8UC3);
         _instance->marker_dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
         std::vector<char *> hosts = Utils::get_device_names_from_file();
-        std::cout << hosts.size() << "djdjdjdj" << std::endl;
+        std::cout << "found " << hosts.size() << " devices" << std::endl;
         for (char *host : hosts){
             Bot *b  = new Bot(host);
             _instance->devices.push_back(b);

@@ -9,7 +9,6 @@
 
 FollowTheLeader::FollowTheLeader(){
     this->target = cv::Point2f(0,0);
-    std::cout << "new behave" << std::endl;
 }
 
 
