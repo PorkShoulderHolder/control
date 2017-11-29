@@ -89,9 +89,8 @@ void midi_loop(std::string filename, bool repeat){
     vector<pair<double, int>> starts;
     vector<pair<double, int>> ends;
 
+    int motor_count = (int)S->devices.size() * 2;
     int i;
-    int k_count = 0;
-    std::unordered_map<int, int> device_ids = {};
 
     for (i=0; i<128; i++) {
         ontimes[i] = -1.0;
@@ -114,12 +113,9 @@ void midi_loop(std::string filename, bool repeat){
             cout << "note\t" << ontimes[key]
             << "\t" << offtime - ontimes[key]
             << "\t" << key << "\t" << onvelocities[key] << endl;
-            if(device_ids.find(key) == device_ids.end() ){
-                device_ids.emplace(key, k_count);
-                k_count += 1;
-            }
-            starts.push_back(std::pair<double, int>(ontimes[key], device_ids[key]));
-            ends.push_back(std::pair<double, int>(offtime, device_ids[key]));
+
+            starts.push_back(std::pair<double, int>(ontimes[key], key % motor_count));
+            ends.push_back(std::pair<double, int>(offtime, key % motor_count));
 
             onvelocities[key] = -1;
             ontimes[key] = -1.0;
@@ -143,15 +139,17 @@ void midi_loop(std::string filename, bool repeat){
         if(starts[l].first * 1000.0 <  t - current_time){
             int bot_index = starts[l].second / 2;
             Bot *bot = S->devices[bot_index];
-            int cint = starts[l].second % 2 ? M_LEFT_OFF : M_RIGHT_OFF;
+            int cint = starts[l].second % 2 ? M_LEFT_ON : M_RIGHT_ON;
             std::cout << starts[l].first << " " << k << " " << k << std::endl;
+            manager->send_udp(bot->host, (char *) M_COMMAND_STR_[cint], bot->port);
             manager->send_udp(bot->host, (char *) M_COMMAND_STR_[cint], bot->port);
             l++;
         }
         if(ends[k].first * 1000.0 < t - current_time){
             int bot_index = ends[k].second / 2;
             Bot *bot = S->devices[bot_index];
-            int cint = ends[k].second % 2 ? M_LEFT_ON : M_RIGHT_ON;
+            int cint = ends[k].second % 2 ? M_LEFT_OFF : M_RIGHT_OFF;
+            manager->send_udp(bot->host, (char *) M_COMMAND_STR_[cint], bot->port);
             manager->send_udp(bot->host, (char *) M_COMMAND_STR_[cint], bot->port);
             k++;
         }
@@ -171,6 +169,7 @@ void timer_loop(std::vector<string>){
 
 int main(int argc, const char** argv){
 
+    system("gtimeout 2 ./mdns-mod -B");
 
     ArgumentParser parser;
     parser.addArgument("-m", "--midi", '*');
