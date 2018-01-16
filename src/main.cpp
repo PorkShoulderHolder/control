@@ -143,14 +143,12 @@ void generate_markers(int count){
     cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_1000);
     int i;
 
-    const int width = (int)sqrt(count);
     cv::Mat display_image = cv::Mat::ones((count / 5) * 150 + 20, 760, CV_32F);
-    int buffer = 10;
     for(i = 0 ;i < count; i++ ){
 
       cv::aruco::drawMarker(dictionary, i, 100, markerImage, 1);
       int x = (i % 5) * 150 + 10;
-      int y = (int)(i / 5) * 150 + 20;
+      int y = (i / 5) * 150 + 20;
       std::string s = std::to_string(i);
       cv::Point p;
       p.x = x + 22;
@@ -211,7 +209,7 @@ void main_loop(int device_index, int main_mode, int sub_mode){
             S->behavior->bots = S->devices;
     }
     Window window;
-
+    cv::Mat obstacles;
     /* event loop */
     while(1){
         S = State::shared_instance();
@@ -220,27 +218,60 @@ void main_loop(int device_index, int main_mode, int sub_mode){
         cv::waitKey(10);
         if(i > 20){
             float ratio = (float)current_image.rows / (float)current_image.cols;
-            float s = 85.0f;
+            float s = 185.0f;
             cv::Mat local;
-            cv::resize(current_image,local, cv::Size((int)(s / ratio), (int)s));
+            cv::resize(current_image, local, cv::Size((int)(s / ratio), (int)s));
             cv::cvtColor(local, local, CV_RGB2GRAY);
             local.convertTo( S->info_image, CV_32FC1);
-            cv::GaussianBlur( local, local,Size(3,3), 0, 0, BORDER_DEFAULT );
 
-            cv::Laplacian( local, local, CV_8U, 3, 1, 0, BORDER_DEFAULT );
-            cv::threshold(local, local, 15.0f, 255, CV_THRESH_BINARY);
 
-            cv::accumulateWeighted(local, S->info_image, 0.01);
+            std::vector<KeyPoint> keypoints;
+            std::vector<cv::Mat> contours;
 
-//            cv::threshold(S->info_image, S->info_image, 15.0f, 255, CV_THRESH_BINARY);
-//            Mat erode_element = getStructuringElement( MORPH_ELLIPSE, Size( 2, 2 ));
-//            Mat dilate_element = getStructuringElement( MORPH_ELLIPSE, Size( 6, 6 ));
-//            cv::erode(S->info_image, S->info_image, erode_element);
-//            cv::dilate(S->info_image, S->info_image, dilate_element);
+            cv::GaussianBlur(local, local,Size(3,3), 0, 0, BORDER_DEFAULT );
 
-            cv::resize(S->info_image, S->info_image, cv::Size((int)(200.0f / ratio), 200) ,0,0, INTER_NEAREST);
+            cv::adaptiveThreshold(local, S->info_image, 255, ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY,19, 5);
+
+            cv::bitwise_not(S->info_image, S->info_image);
+            Mat erode_element = getStructuringElement( MORPH_ELLIPSE, Size( 1, 1 ));
+            Mat dilate_element = getStructuringElement( MORPH_ELLIPSE, Size( 4, 4 ));
+            cv::erode(S->info_image, S->info_image, erode_element);
+            cv::dilate(S->info_image, S->info_image, dilate_element);
+            list<state> path;
+
+            if(obstacles.size().height == 0  && S->devices.size() > 0){
+
+                Bot *bot = S->devices.back();
+
+                bot->start_pathfinding(S->info_image, bot->target);
+
+                path = bot->pathfinder->getPath();
+                obstacles = S->info_image;
+
+            }
+            else if(S->devices.size() > 0){
+                Bot *bot = S->devices.back();
+                cv::Mat diff = obstacles - S->info_image;
+                bot->update_pathfinding(diff);
+                path = bot->pathfinder->getPath();
+                std::cout << path.size() << std::endl;
+
+                for(state ts : path){
+                    circle(S->info_image, cv::Point2d(ts.x, ts.y),
+                           2.0,
+                           Scalar( 0, 0, 255 ),
+                           1.0,
+                           8 );
+                }
+                obstacles = S->info_image;
+
+            }
+
+
+
+
+
             cv::imshow(INFO_WINDOW, S->info_image);
-
 
             if(main_mode == CONTROL){
                 S->update(current_image);

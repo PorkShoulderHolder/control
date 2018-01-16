@@ -9,6 +9,7 @@
 #include <deque>
 #include "agent.h"
 #include <chrono>
+#include "d_star.h"
 
 enum MOTOR{
     M_RIGHT_OFF = 0,
@@ -34,7 +35,8 @@ class Bot {
 public:
     Bot( const char *host );
     ~Bot();
-
+    void start_pathfinding(cv::Mat bitmap_terrain, cv::Point2d goal);
+    void update_pathfinding(cv::Mat bitmap_terrain_diff);
     StateAction Q_indices(cv::Point2f location, cv::Point2f rotation);
     void apply_motor_commands( std::vector<MOTOR> );
     void incr_command_queue();
@@ -50,6 +52,7 @@ public:
     std::deque< cv::Point2d > target_queue;
     void append_path(std::vector< cv::Point2d >);
     void replace_path(std::vector< cv::Point2d >);
+    Dstar *pathfinder;
     int left_command;
     int right_command;
     int aruco_id;

@@ -30,6 +30,7 @@ Bot::Bot(const char *host){
     std::pair<int, int> lr = Utils::get_lr(this->host);
     this->right_command = lr.first;
     this->left_command = lr.second;
+    this->pathfinder = new Dstar();
 }
 
 Bot::~Bot() {
@@ -40,6 +41,35 @@ Bot::~Bot() {
     this->agent->serialize(name);
 }
 
+void Bot::start_pathfinding(cv::Mat bitmap_terrain, cv::Point2d goal){
+    cv::Size s = bitmap_terrain.size();
+    cv::Point2d current_pos = cv::Point2d(this->state.location[0], this->state.location[1]);
+    this->pathfinder->init((int)(current_pos.x / s.width), (int)(current_pos.y / s.height), (int)(goal.x / s.width),
+                           (int)(goal.y / s.height));
+
+
+    for(int i=0; i<bitmap_terrain.rows; i++)
+        for(int j=0; j<bitmap_terrain.cols; j++)
+            if(bitmap_terrain.at<bool>(i,j)){
+                this->pathfinder->updateCell(j, i, -1);
+            }
+    this->pathfinder->replan();
+}
+
+
+void Bot::update_pathfinding(cv::Mat bitmap_terrain_diff){
+    cv::Size s = bitmap_terrain_diff.size();
+
+    for(int i=0; i<bitmap_terrain_diff.rows; i++)
+        for(int j=0; j<bitmap_terrain_diff.cols; j++){
+            int cost = bitmap_terrain_diff.at<bool>(i,j) ? 1 : -1;
+            this->pathfinder->updateCell(j, i, cost);
+        }
+    cv::Point2d pos = cv::Point2d(this->state.location[0], this->state.location[1]);
+    std::cout << (int)(pos.x) <<  (int)(pos.x)<< std::endl;
+    this->pathfinder->updateStart((int)(pos.x / s.width), (int)(pos.x / s.width));
+
+}
 
 StateAction Bot::Q_indices(cv::Point2f location, cv::Point2f rotation){
     /*
@@ -205,7 +235,7 @@ std::string Bot::send_state(StateAction state_action) {
     msg += ",\"y\":" + std::to_string(state_action.y);
     int j = 0;
     long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()
-                                                                                 .time_since_epoch()).count();
+                                                                             .time_since_epoch()).count();
 
     msg += ",\"t\":" + std::to_string(now - TIME_CONCAT);
     for(std::pair<StateAction, long int> sat : this->past_state_actions){
